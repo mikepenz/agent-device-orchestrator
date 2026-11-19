@@ -1,7 +1,7 @@
 <h1 align="center">devq</h1>
 
 <p align="center">
-  <a href="https://github.com/mikepenz/agent-device-orchestrator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/mikepenz/agent-device-orchestrator/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/mikepenz/agent-device-orchestrator/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/mikepenz/agent-device-orchestrator?include_prereleases"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-CLI-orange?logo=rust"></a>
   <img alt="Platforms: macOS, Linux, Windows (compile-checked)" src="https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows*-lightgrey">

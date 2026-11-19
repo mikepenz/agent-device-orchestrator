@@ -76,6 +76,7 @@ jobs:
           toolchain: "1.97.0"
           targets: ${{ matrix.target }}
       - run: cargo build --locked --release --target "$TARGET"
+        shell: bash
         env:
           TARGET: ${{ matrix.target }}
 
@@ -116,6 +117,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45 # notarytool waits up to 30m
     environment: release # deployable from v* tags only
+    permissions: {} # artifacts use the runtime token; no GITHUB_TOKEN scopes needed
     env:
       CAN_SIGN: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.NOTARY_KEY_P8 != '' }} # a boolean, never a value
     outputs:
@@ -166,6 +168,7 @@ jobs:
             /usr/bin/codesign --force --options runtime --timestamp --keychain "$KEYCHAIN" --sign "$MACOS_SIGNING_IDENTITY" "$bin"
             /usr/bin/codesign --verify --strict --verbose=2 "$bin"
           done
+          /usr/bin/security delete-keychain "$KEYCHAIN" # signing done; nothing can use the key during notarization
 
           # One submission for both binaries. A bare binary cannot be stapled;
           # Gatekeeper fetches the ticket online on first run.
@@ -191,6 +194,8 @@ jobs:
           /bin/rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/notarize.zip"
 
       - name: Repack
+        env:
+          COPYFILE_DISABLE: 1 # no ._* AppleDouble entries
         run: |
           set -euo pipefail
           cd work

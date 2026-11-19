@@ -58,6 +58,11 @@ jobs:
     needs: [verify-version, ci]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    # Signing secrets live in the `release` environment (deployable from v* tags only).
+    environment: release
+    env:
+      # Signing is opt-in: without the certificate + notary key, macOS archives ship unsigned.
+      CAN_SIGN_MACOS: ${{ startsWith(matrix.os, 'macos') && secrets.MACOS_CERTIFICATE_P12 != '' && secrets.NOTARY_KEY_P8 != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +81,61 @@ jobs:
           toolchain: "1.97.0"
           targets: ${{ matrix.target }}
       - run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Import signing certificate
+        if: env.CAN_SIGN_MACOS == 'true'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode -o "$CERT"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          rm -f "$CERT"
+
+      - name: Sign and notarize
+        if: env.CAN_SIGN_MACOS == 'true'
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          BIN="target/$TARGET/release/devq"
+          codesign --force --options runtime --timestamp --sign "$MACOS_SIGNING_IDENTITY" "$BIN"
+          codesign --verify --strict --verbose=2 "$BIN"
+          # A bare binary cannot be stapled; Gatekeeper fetches the ticket online on first run.
+          KEY="$RUNNER_TEMP/notary.p8"
+          printf '%s' "$NOTARY_KEY_P8" > "$KEY"
+          ZIP="$RUNNER_TEMP/devq-notarize.zip"
+          ditto -c -k --keepParent "$BIN" "$ZIP"
+          OUT=$(xcrun notarytool submit "$ZIP" --key "$KEY" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" \
+                --wait --timeout 30m --output-format json)
+          echo "$OUT"
+          STATUS=$(echo "$OUT" | /usr/bin/plutil -extract status raw -o - -)
+          if [ "$STATUS" != "Accepted" ]; then
+            ID=$(echo "$OUT" | /usr/bin/plutil -extract id raw -o - -)
+            xcrun notarytool log "$ID" --key "$KEY" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" || true
+            echo "::error::notarization status: $STATUS"
+            exit 1
+          fi
+
+      - name: Remove signing material
+        if: always() && env.CAN_SIGN_MACOS == 'true'
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/certificate.p12"
+
       - name: Package
         shell: bash
         env:
@@ -131,6 +191,7 @@ jobs:
     needs: [verify-version, build, changelog]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: release
     permissions:
       contents: write
       id-token: write # sign the attestation (Sigstore OIDC)
@@ -152,6 +213,7 @@ jobs:
           # PR titles are untrusted text: pass via env and print with %s, never interpolate.
           CHANGELOG: ${{ needs.changelog.outputs.changelog }}
           VERSION: ${{ needs.verify-version.outputs.version }}
+          SIGNED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.NOTARY_KEY_P8 != '' }}
         run: |
           set -euo pipefail
           # shellcheck disable=SC2016 # backticks are markdown, not shell
@@ -162,7 +224,11 @@ jobs:
             printf -- '- **Linux**: `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu`\n'
             printf -- '- **Windows**: `x86_64-pc-windows-msvc.zip` (builds, runtime untested)\n\n'
             printf 'Or from source: `cargo install --git https://github.com/mikepenz/agent-device-orchestrator --tag %s --locked`\n\n' "$GITHUB_REF_NAME"
-            printf 'The binaries are unsigned. On macOS, clear the quarantine flag after extracting: `xattr -d com.apple.quarantine devq`.\n\n'
+            if [ "$SIGNED" = "true" ]; then
+              printf 'The macOS binaries are signed with a Developer ID certificate and notarized by Apple.\n\n'
+            else
+              printf 'The binaries are unsigned. On macOS, clear the quarantine flag after extracting: `xattr -d com.apple.quarantine devq`.\n\n'
+            fi
             printf '<details><summary>Verify downloads</summary>\n\n```sh\nsha256sum -c CHECKSUMS-SHA256.txt\ngh attestation verify <archive> --repo mikepenz/agent-device-orchestrator\n```\n\n</details>\n'
           } > release-body.md
           cat release-body.md

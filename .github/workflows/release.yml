@@ -284,3 +284,27 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: release-assets/*
           fail_on_unmatched_files: true
+
+  # Tell the Homebrew tap about the new version; it reads CHECKSUMS-SHA256.txt
+  # from this release and opens a PR. Needs a TRIGGER_TOKEN secret in the
+  # `release` environment that can write to mikepenz/homebrew-tap.
+  # Prereleases are skipped.
+  update-tap:
+    name: Update Homebrew tap
+    needs: [verify-version, release]
+    if: ${{ !contains(github.ref_name, '-') }}
+    environment: release # TRIGGER_TOKEN lives here; deployable from v* tags only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Dispatch
+        env:
+          VERSION: ${{ needs.verify-version.outputs.version }}
+          TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --retry 2 --connect-timeout 30 -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/mikepenz/homebrew-tap/dispatches \
+            --data "{\"event_type\":\"update-devq\",\"client_payload\":{\"version\":\"$VERSION\"}}"

@@ -85,6 +85,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash scripts/check-exact-pins.sh
 
+      - name: Plugin version matches Cargo.toml
+        if: ${{ !cancelled() }}
+        run: bash scripts/check-plugin-version.sh
+
       - name: Dependency minimum age (7-day cooldown)
         if: ${{ !cancelled() }}
         env:

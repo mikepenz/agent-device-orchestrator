@@ -1,0 +1,38 @@
+<h1>Agent setup</h1>
+<p class="lead">Three layers, use as many as you need: instructions, a skill, and a hook that enforces them.</p>
+
+<h2 id="instructions">Instructions</h2>
+<p>Paste into <code>CLAUDE.md</code> or <code>AGENTS.md</code>.</p>
+<pre><code>## Devices (devq)
+- Never touch an emulator or phone without a devq slot. Devices are shared with other agents.
+- Wrap device work: `devq run --agent &lt;name&gt; --purpose "&lt;why&gt;" --description "&lt;what&gt;" --expect &lt;d&gt; --max &lt;d&gt; -- &lt;cmd&gt;`
+- Inside the command, use `$ANDROID_SERIAL` (`adb -s "$ANDROID_SERIAL" ...`). Never rely on the default device.
+- Interactive sessions: `devq request --agent &lt;name&gt; --purpose "&lt;why&gt;" --wait 25s`. Exit 75 prints `ticket &lt;id&gt;`.
+  Resume at once with `devq request --ticket &lt;id&gt; --wait 25s` (no `--agent`/`--purpose` needed), and repeat until it exits 0.
+- A granted request prints `&lt;slot&gt; &lt;serial&gt;`. Use that serial, and always run `devq release &lt;slot&gt;` when done.
+- Set `--expect` to a realistic duration and `--max` to the longest you can tolerate. `--max` kills the command.
+- `devq status` shows who holds what. `devq live --open` shows the dashboard.</code></pre>
+
+<h2 id="skill">Skill</h2>
+<p>The skill teaches Claude Code agents to use <code>devq</code> correctly. It ships inside the binary, so the installed copy always matches the CLI version.</p>
+<pre><code>devq skills add              # global: ~/.claude/skills/devq/SKILL.md
+devq skills add --project    # this project: ./.claude/skills/devq/SKILL.md
+devq skills add --dir &lt;path&gt; # other agent tools: &lt;path&gt;/devq/SKILL.md
+devq skills list             # not installed / installed / outdated / modified locally
+devq skills update           # refresh outdated copies (modified ones are skipped)
+devq skills remove           # delete an unmodified copy (--force for edited ones)</code></pre>
+
+<h2 id="hook">Enforcement hook</h2>
+<p>A skill is advisory, and terse prompts ("install the debug apk") often skip it. The optional hook blocks raw device commands that have no slot and tells the agent how to use <code>devq</code>.</p>
+<pre><code>devq hook install                       # global, Claude Code (--project, --dir &lt;PATH&gt;, --target claude|codex|gemini)
+devq hook install --deny-rules          # claude only: also add static permissions.deny backstop rules
+devq hook install --strict              # internal errors block instead of passing
+devq hook test "adb shell getprop"      # prints allow or deny (+ reason)
+devq hook uninstall                     # removes exactly what install added</code></pre>
+<ul>
+  <li>It flags <code>adb</code> calls (except <code>devices</code>, <code>version</code>, <code>help</code>), <code>am instrument</code>, <code>gradlew ... connected*Test</code> and <code>emulator -avd</code>, including inside <code>sh -c</code>, pipes and <code>sudo</code>.</li>
+  <li>It allows a command under <code>devq run ... --</code>, or an adb call targeting a serial that has an active slot.</li>
+  <li>It fails open on internal errors unless <code>--strict</code>. Each block shows on the dashboard. About 17 ms per call.</li>
+  <li><b>A guardrail, not a sandbox.</b> Scripts that call adb internally, <code>$ADB</code> and gradle task abbreviations slip through.</li>
+  <li>Codex needs its hooks trusted once through <code>/hooks</code>. The Codex and Gemini formats are unverified against a live CLI.</li>
+</ul>

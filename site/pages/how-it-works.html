@@ -1,0 +1,27 @@
+<h1>How it works</h1>
+<p class="lead">One SQLite file is the coordinator. Every <code>devq</code> process reads and writes it.</p>
+
+<h2 id="coordinator">The coordinator</h2>
+<ul>
+  <li>The state lives in <code>$DEVQ_HOME/devq.db</code> (default <code>~/.devq</code>), in WAL mode.</li>
+  <li>A tick under the database lock reaps timeouts, orphaned pids and abandoned waiters, then hands free devices to the oldest compatible request.</li>
+  <li><code>devq live</code> is the same binary serving an embedded page. There is no separate daemon.</li>
+</ul>
+<p>Waiting is polling. A ticket that is not polled for 8s is skipped when devices are handed out, and one not polled for 30s ends as <code>abandoned</code>.</p>
+
+<h2 id="slots">Slots and limits</h2>
+<ul>
+  <li><b>Expect and max.</b> <code>--expect</code> is the realistic hold time, <code>--max</code> the hard limit. <code>devq run</code> sends SIGTERM to the command's process group at <code>--max</code>, then SIGKILL 5s later.</li>
+  <li><b>Orphans.</b> <code>devq run</code> records its pid. If it is killed, the next <code>devq</code> process notices, kills the group and ends the slot as <code>orphaned</code>.</li>
+  <li><b>Advisory lock.</b> Nothing stops a process from running <code>adb</code> against a device it does not hold. Use the <a href="agents.html#hook">hook</a> as a guardrail.</li>
+</ul>
+
+<h2 id="platforms">Platforms</h2>
+<ul>
+  <li><b>macOS</b> is the primary, fully tested platform.</li>
+  <li><b>Linux</b> is tested in a Linux container without a device, plus CI on Ubuntu. <code>devq service</code> is macOS-only; run <code>devq live</code> from a systemd user unit instead.</li>
+  <li><b>Windows</b> is compile-checked only. Commands are force-killed with no grace period, and grandchildren of an exited leader are not killed.</li>
+</ul>
+
+<h2 id="supply-chain">Supply chain</h2>
+<p>Dependencies are exact pins, no crate younger than 7 days, <code>cargo deny</code> and <code>cargo audit</code> gate CI, and every GitHub Action is pinned to a commit SHA. Details are in the <a href="https://github.com/mikepenz/agent-device-orchestrator#supply-chain">README</a>.</p>

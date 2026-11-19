@@ -1,0 +1,36 @@
+[package]
+name = "devq"
+version = "0.1.0"
+edition = "2021"
+description = "Serialise access to shared Android devices between AI agents: queue, run, and watch device slots"
+license = "Apache-2.0"
+repository = "https://github.com/mikepenz/agent-device-orchestrator"
+readme = "README.md"
+keywords = ["android", "adb", "agents", "emulator", "queue"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "devq"
+path = "src/main.rs"
+
+# Every dependency is pinned exactly (`=x.y.z`) and must be at least 7 days old
+# when adopted (scripts/check-dependency-age.sh, enforced in CI). Renovate bumps
+# the pins after the same cooldown (renovate.json).
+[dependencies]
+clap = { version = "=4.6.7", features = ["derive", "env"] }
+rusqlite = { version = "=0.41.1", features = ["bundled"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["preserve_order"] }
+tiny_http = "=0.12.0"
+toml = "=0.8.23"
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.191"
+signal-hook = "=0.4.6"
+
+[target.'cfg(windows)'.dependencies]
+ctrlc = { version = "=3.5.2", features = ["termination"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[profile.release]
+strip = true

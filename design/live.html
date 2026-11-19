@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>devq live</title>
+<style>
+/* Layout: one column of flat sections divided by hairlines. Top: devices | queue (fixed height), then the timeline, stats, run log, tables.
+   Anything that updates every second has a fixed box, so nothing below it moves. */
+:root{
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --bg:#fff; --fg:#0f0f10; --fg2:#55565b; --fg3:#85868c; --line:#ececee; --line2:#d9d9de; --hover:#f6f6f8; --track:#ececef;
+  --good:#17803d; --warn:#a85f00; --warnbar:#f0a30a; --crit:#cf2f2f;
+  --a0:#2a78d6; --a1:#eb6834; --a2:#1baf7a; --a3:#eda100; --a4:#e87ba4; --a5:#008300; --a6:#6250d6; --a7:#e34948;
+  --fs:13px; --gx:24px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0b0c; --fg:#ededee; --fg2:#a1a1a7; --fg3:#707076; --line:#1d1d20; --line2:#2d2d32; --hover:#131315; --track:#1f1f23;
+  --good:#3fb96a; --warn:#f5b13d; --warnbar:#f5b13d; --crit:#f26b6b;
+  --a0:#3987e5; --a1:#d95926; --a2:#199e70; --a3:#c98500; --a4:#d55181; --a5:#0ca30c; --a6:#9085e9; --a7:#e66767;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0b0c; --fg:#ededee; --fg2:#a1a1a7; --fg3:#707076; --line:#1d1d20; --line2:#2d2d32; --hover:#131315; --track:#1f1f23;
+  --good:#3fb96a; --warn:#f5b13d; --warnbar:#f5b13d; --crit:#f26b6b;
+  --a0:#3987e5; --a1:#d95926; --a2:#199e70; --a3:#c98500; --a4:#d55181; --a5:#0ca30c; --a6:#9085e9; --a7:#e66767;color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:var(--fs)/1.4 var(--sans);font-variant-numeric:tabular-nums;
+  padding-block:0 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1360px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.mono,code{font-family:var(--mono)}
+.mut{color:var(--fg3);font-weight:400}
+h2{margin:0;font-size:12.5px;font-weight:500;color:var(--fg2);height:22px;display:flex;gap:8px;align-items:baseline}
+.devs h2,.tl h2{font-size:16px;font-weight:650;color:var(--fg);letter-spacing:-.015em;height:26px}
+section{padding-block:22px;border-top:1px solid var(--line)}
+section.now{border-top:0;padding-top:8px}
+.sw{flex:none;width:8px;height:8px;border-radius:2px;background:var(--c)}
+
+/* header: fixed height so the glance text never moves anything */
+.top{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:0 20px;height:52px}
+.brand{font-size:15px;font-weight:650;letter-spacing:-.01em}.brand span{font-weight:400;color:var(--fg3);margin-left:4px}
+.glance{display:flex;gap:16px;white-space:nowrap;overflow:hidden;color:var(--fg2);height:20px;align-items:center}
+.glance b{color:var(--fg);font-weight:600}
+.seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line2);border-radius:7px}
+.seg button{border:0;background:none;padding:0 10px;height:24px;border-radius:5px;color:var(--fg2)}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:600}
+.conn{display:inline-flex;align-items:center;justify-content:flex-end;min-width:200px;gap:7px;color:var(--fg2);min-width:0;white-space:nowrap}
+.conn i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--good)}
+.conn[data-m="mock"] i,.conn[data-m="fallback"] i{background:var(--fg3);border-radius:1px}
+.conn[data-m="offline"] i{background:var(--crit)}
+@media (max-width:700px){
+  .top{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:34px 24px 34px;height:92px;gap:0 12px;align-content:center}
+  .brand{grid-area:1/1}.conn{grid-area:1/2}.glance{grid-area:2/1/3/3}.seg{grid-area:3/1;justify-self:start}
+}
+
+/* now: devices | queue */
+.now{display:grid;gap:28px var(--gx);grid-template-columns:minmax(0,1fr)}
+@media (min-width:980px){.now{grid-template-columns:minmax(0,1fr) 320px;column-gap:40px}.qs{border-left:1px solid var(--line);padding-left:40px}}
+.devs,.qs{min-width:0}
+.qs{display:flex;flex-direction:column}
+.dgrid{display:grid;gap:0 var(--gx);grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));margin-top:8px}
+
+/* device cell: every row has a fixed height, so free, busy and overrun are the same size */
+.dev{display:grid;grid-template-rows:20px 22px 22px 36px 22px 4px 18px;row-gap:4px;padding:12px 0 10px;border-top:1px solid var(--line2);min-width:0}
+.dev>*{min-width:0}
+.r1{display:flex;align-items:center;gap:8px}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--good);transition:background-color .3s,border-color .3s}
+.dev.has .dot{background:var(--c);border-color:var(--c)}
+.dev.over .dot{background:var(--warnbar);border-color:var(--warnbar)}
+.dev.crit .dot{background:var(--crit);border-color:var(--crit)}
+.dev[data-s="off"] .dot{background:none;border-color:var(--fg3)}
+.ser{font-size:12px;font-weight:600;white-space:nowrap}
+.mod{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg3);font-size:12px}
+.stt{flex:none;font-size:12px;color:var(--good);transition:color .3s}
+.dev.has .stt{color:var(--fg2)}.dev.over .stt{color:var(--warn)}.dev.crit .stt{color:var(--crit)}.dev[data-s="off"] .stt{color:var(--fg3)}
+.r2{display:flex;align-items:center;gap:8px}
+.r2 b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dev:not(.has) .r2 b{color:var(--fg3);font-weight:400}
+.dev:not(.has) .sw{visibility:hidden}
+.sid{margin-left:auto;color:var(--fg3);font-size:11px;flex:none}
+.purpose{font-size:15px;font-weight:600;letter-spacing:-.005em;line-height:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev:not(.has) .purpose{color:var(--fg3);font-weight:400;font-size:var(--fs)}
+.desc{color:var(--fg2);line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cmd{font-size:11.5px;color:var(--fg2);line-height:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.desc,.cmd,.bar,.nums{transition:opacity .3s}
+.dev:not(.has) :is(.desc,.cmd,.bar,.nums){opacity:0}
+.dev.chg :is(.r2,.purpose){animation:fade .4s}
+.bar{position:relative;height:4px;border-radius:2px;background:var(--track);align-self:center}
+.bar i{position:absolute;top:0;bottom:0;left:0;transition:width .25s linear,left .25s linear}
+.bar .fill{background:var(--c);border-radius:2px 0 0 2px}
+.bar .ov{background:var(--warnbar);border-radius:0 2px 2px 0}
+.bar u{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--fg);transition:left .25s linear}
+.nums{display:flex;justify-content:space-between;gap:8px;color:var(--fg2);line-height:18px;white-space:nowrap}
+.n1{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.n2{flex:none;min-width:15ch;text-align:right}
+.nums .over{color:var(--warn)}.nums .low{color:var(--crit)}
+
+/* queue: rows are absolutely placed and moved with transforms, so the box never changes size */
+.qbox{position:relative;flex:1 1 0;min-height:224px;margin-top:8px;overflow-y:auto;overscroll-behavior:contain}
+.qsp{position:relative}
+.q{position:absolute;left:0;right:0;top:0;height:44px;display:grid;grid-template-columns:18px minmax(0,1fr) 104px;grid-template-rows:20px 18px;align-content:center;column-gap:8px;
+  border-top:1px solid var(--line);transition:transform .3s ease,opacity .25s}
+.q.new{animation:fade .3s}
+.q.leave{opacity:0;pointer-events:none}
+.q .pos{color:var(--fg3);font-size:12px}
+.q .who{display:flex;align-items:center;gap:7px;min-width:0}
+.q .who b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q .wt{text-align:right;font-family:var(--mono);font-weight:600}
+.q small{grid-column:2;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q .wd{text-align:right;color:var(--fg3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qe{position:absolute;top:0;left:0;margin:0;padding:12px 0;color:var(--fg3);transition:opacity .3s}
+.empty{color:var(--fg3);margin:12px 0}
+
+/* timeline */
+.lane{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;align-items:center;height:42px;margin-top:2px}
+.ll{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.ll .mono{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ll small{color:var(--fg3);font-size:11.5px;white-space:nowrap}
+.track{position:relative;height:34px;border-radius:4px;background:var(--hover);overflow:hidden;
+  background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:25% 100%}
+.bar2{position:absolute;top:4px;bottom:4px;border-radius:3px;background:var(--c);min-width:3px;cursor:pointer;transition:left .25s linear,width .25s linear,opacity .4s}
+.bar2.new{animation:fade .5s}
+.bar2:hover{filter:brightness(1.12)}
+.bar2:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
+.dev.leave,.lane.leave,.bar2.leave,tr.leave{opacity:0;transition:opacity .3s}
+.bar2.ovr{box-shadow:inset 0 -3px 0 var(--warnbar)}
+.bar2.to::after{content:"";position:absolute;right:0;top:0;bottom:0;width:5px;border-radius:0 3px 3px 0;background:repeating-linear-gradient(135deg,var(--crit) 0 2px,var(--bg) 2px 4px)}
+.bar2.or{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.4) 0 3px,transparent 3px 6px);outline:1.5px dashed var(--fg);outline-offset:-1.5px}
+.bar2.act::before{content:"";position:absolute;right:0;top:-1px;bottom:-1px;width:2px;background:var(--fg);border-radius:1px}
+.axis{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;height:20px;align-items:center}
+.ax{display:flex;justify-content:space-between;font-size:11px;color:var(--fg3)}
+.leg{display:flex;gap:16px;align-items:center;height:26px;margin-top:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;color:var(--fg2);font-size:12px}
+.leg::-webkit-scrollbar{display:none}
+.leg span{display:inline-flex;align-items:center;gap:6px;flex:none}
+.leg .k{width:14px;height:8px;border-radius:2px;background:var(--fg3)}
+.k.to{background:repeating-linear-gradient(135deg,var(--crit) 0 2px,var(--bg) 2px 4px)!important}
+.k.or{outline:1.5px dashed var(--fg);outline-offset:-1.5px}
+.k.ovr{box-shadow:inset 0 -3px 0 var(--warnbar)}
+.leg .sep{width:1px;height:12px;background:var(--line2)}
+
+/* stats: three figures that matter, the rest on one quiet line */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 var(--gx);padding-block:0;border-top:0}
+.tile{border-top:1px solid var(--line);padding:14px 0 6px;min-width:0;height:104px}
+.tile .tl2{display:block;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:18px}
+.tile .tv{display:block;font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:44px;white-space:nowrap}
+.tile small{display:block;color:var(--fg3);height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile[data-t="warn"] .tv{color:var(--warn)}.tile[data-t="crit"] .tv{color:var(--crit)}
+.more{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 var(--gx);height:24px;overflow:hidden;color:var(--fg3);padding-bottom:0}
+.more .m{white-space:nowrap}.more b{color:var(--fg2);font-weight:500}
+.more.two{height:48px}
+
+/* run log */
+.lf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 12px}
+.lf select,.lf input{height:30px;border:1px solid var(--line2);border-radius:6px;background:var(--bg);padding:0 8px;min-width:0}
+.lf select{width:150px;max-width:100%}
+.lf input{flex:1 1 180px}
+.lc{margin-left:auto;color:var(--fg3);min-width:150px;text-align:right;white-space:nowrap}
+.lgrid{--cols:48px 128px 112px minmax(0,1fr) 40px 88px 64px 116px 92px;display:grid;grid-template-columns:var(--cols);column-gap:12px;align-items:center}
+.lh{overflow-y:hidden;scrollbar-gutter:stable;height:28px;border-bottom:1px solid var(--line2);color:var(--fg3);padding:0 6px}
+.lh span:is(.c-wait,.c-hold,.c-ex){text-align:right}
+.lbody{position:relative;height:440px;overflow-y:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
+.lsp{position:relative}
+.lr{position:absolute;left:0;right:0;top:0;height:44px;padding:0 6px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;transition:transform .3s ease,opacity .25s,background-color .15s}
+.lr:hover{background:var(--hover)}
+.lr.new{animation:fade .3s}
+.lr.leave{opacity:0;pointer-events:none}
+.lr>*{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lr .c-ag{display:flex;align-items:center;gap:7px}
+.lr .c-ag b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.lr .c-id,.lr .c-dev,.lr .c-start{color:var(--fg2);font-size:12px}
+.lr .c-run{display:flex;flex-direction:column;line-height:1.3}
+.lr .c-run small{color:var(--fg3);font-family:var(--mono);font-size:11px;overflow:hidden;text-overflow:ellipsis}
+.lr .c-ex,.lr .c-wait,.lr .c-hold{text-align:right}
+.lr .c-wait,.lr .c-hold{color:var(--fg2)}
+.lr .c-hold.over{color:var(--warn)}
+.lr .c-ex.bad{color:var(--crit)}
+.bd{font-size:12px;color:var(--fg2)}
+.bd.timeout{color:var(--crit)}
+.bd.orphaned{color:var(--warn)}
+.bd.active{color:var(--fg);font-weight:600}
+@media (max-width:1000px){.lgrid{--cols:44px 120px minmax(0,1fr) 88px 112px 88px}.c-dev,.c-ex,.c-wait{display:none}}
+@media (max-width:620px){.lgrid{--cols:92px minmax(0,1fr) 78px;column-gap:8px}.c-id,.c-start,.c-hold{display:none}.lbody{height:396px}.lc{margin-left:0;min-width:0;text-align:left;flex:1 0 100%}}
+
+/* tables */
+.blk{margin-top:32px}.bl{height:104px;overflow:auto;font-size:12.5px;line-height:20px;font-variant-numeric:tabular-nums}.bl div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:grid;gap:32px var(--gx);grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.tabs{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}}
+.sc{overflow-x:auto;margin-top:8px}
+table{width:100%;min-width:420px;table-layout:fixed;border-collapse:collapse}
+th{font-weight:400;color:var(--fg3);text-align:right;padding:4px 8px;border-bottom:1px solid var(--line2);height:28px;white-space:nowrap}
+td{padding:0 8px;text-align:right;border-bottom:1px solid var(--line);height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+td:first-child{font-weight:500}
+.cl{display:inline-flex;align-items:center;gap:7px;max-width:100%}
+.cl span{overflow:hidden;text-overflow:ellipsis}
+.ub{display:inline-block;vertical-align:middle;width:56px;height:4px;border-radius:2px;background:var(--track);margin-right:8px;position:relative;overflow:hidden}
+.ub i{position:absolute;inset:0 auto 0 0;background:var(--fg2);transition:width .5s}
+tr.new{animation:fade .5s}
+td.hot{color:var(--crit)}td.z{color:var(--fg3)}
+
+/* detail drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.28);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;z-index:30}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--bg);border-left:1px solid var(--line2);z-index:31;transform:translateX(100%);visibility:hidden;transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body.dopen .scrim{opacity:1;visibility:visible}
+body.dopen .drawer{transform:none;visibility:visible}
+.drh{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;border-bottom:1px solid var(--line);flex:none}
+.drh h2{height:auto;font-size:15px;flex:1}
+.drh button{border:1px solid var(--line2);background:none;border-radius:6px;height:28px;padding:0 10px}
+.drb{overflow-y:auto;padding:16px 20px 28px;flex:1}
+.drb dl{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 12px;margin:16px 0 0}
+.drb dt{color:var(--fg3)}.drb dd{margin:0;word-break:break-word}
+.drb pre{margin:0;font:11.5px/1.5 var(--mono);white-space:pre-wrap;word-break:break-all;background:var(--hover);border-radius:4px;padding:8px 10px}
+.mini{width:100%;height:auto;display:block}
+.mini text{fill:var(--fg3);font-size:10px;font-family:var(--sans)}
+.mini .ax{stroke:var(--line2);stroke-width:1}
+.mini .wait{fill:var(--track)}
+.mini .tk{stroke:var(--fg);stroke-width:1}.mini .tkm{stroke:var(--crit);stroke-width:1.5}
+
+@keyframes fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:0s!important}}
+@media (max-width:520px){.tile .tv{font-size:26px;line-height:36px}.tile{height:96px}.more{height:72px}.lane,.axis{grid-template-columns:88px minmax(0,1fr);gap:8px}.ll .mono{font-size:11px}.ll small{display:none}.ll{justify-content:center}}
+
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand">devq<span>live</span></div>
+  <div class="glance" id="glance" aria-live="polite"></div>
+  <div class="seg" id="wsw" role="group" aria-label="Time window"><button data-w="3600">1h</button><button data-w="21600">6h</button><button data-w="86400">24h</button></div>
+  <div class="conn" id="conn" data-m="offline" role="status"><i></i><span>connecting</span></div>
+</header>
+<main>
+  <section class="now">
+    <div class="devs"><h2>Devices <span class="mut" id="dsub"></span></h2><div class="dgrid" id="dgrid"></div><p class="empty" id="dempty" hidden>No devices in the pool. Start an emulator or connect a device, then run <code>devq devices</code>.</p></div>
+    <div class="qs"><h2>Queue <span class="mut" id="qcnt">0</span></h2><div class="qbox"><div class="qsp" id="ql"></div><p class="qe" id="qempty">Nobody is waiting.</p></div></div>
+  </section>
+  <section class="tl"><h2>Timeline <span class="mut" id="tlsub"></span></h2><div id="tlc"></div><div class="axis"><span></span><div class="ax" id="ax"></div></div><div class="leg" id="leg"></div></section>
+  <section class="stats" id="tiles" aria-label="Statistics"></section>
+  <section class="log">
+    <h2>Runs <span class="mut">newest first</span></h2>
+    <div class="lf">
+      <select id="f-agent" aria-label="Agent"><option value="">All agents</option></select>
+      <select id="f-device" aria-label="Device"><option value="">All devices</option></select>
+      <select id="f-out" aria-label="Outcome"><option value="">All outcomes</option><option>active</option><option>released</option><option>timeout</option><option>orphaned</option><option>cancelled</option><option>abandoned</option></select>
+      <input id="f-q" type="search" placeholder="Search purpose, description, command" aria-label="Search runs">
+      <span class="lc" id="lc"></span>
+    </div>
+    <div class="lgrid lh"><span class="c-id">Id</span><span class="c-ag">Agent</span><span class="c-dev">Device</span><span class="c-run">Purpose</span><span class="c-ex">Exit</span><span class="c-out">Outcome</span><span class="c-wait">Wait</span><span class="c-hold">Hold / expected</span><span class="c-start">Started</span></div>
+    <div class="lbody" id="lb"><div class="lsp" id="ls"></div></div>
+  </section>
+  <section class="tabs">
+    <div><h2>Per device</h2><div class="sc"><table><colgroup><col style="width:34%"><col style="width:16%"><col style="width:20%"><col style="width:30%"></colgroup><thead><tr><th>Device</th><th>Grants</th><th>Busy</th><th>Utilisation</th></tr></thead><tbody id="tdev"></tbody></table></div></div>
+    <div><h2>Per agent</h2><div class="sc"><table><colgroup><col style="width:28%"><col style="width:14%"><col style="width:20%"><col style="width:22%"><col style="width:16%"></colgroup><thead><tr><th>Agent</th><th>Grants</th><th>Busy</th><th>Mean wait</th><th>Timeouts</th></tr></thead><tbody id="tag"></tbody></table></div></div>
+  </section>
+  <section class="blk"><h2>Blocked attempts <span class="mut" id="bcnt"></span></h2><div class="bl" id="bl" aria-live="polite"><span class="mut">none</span></div></section>
+</main>
+</div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="dr" role="dialog" aria-modal="true" aria-labelledby="drt" aria-hidden="true">
+  <div class="drh"><h2 id="drt">Run</h2><button id="drx" type="button">Close</button></div>
+  <div class="drb" id="drb"></div>
+</aside>
+<script>
+(()=>{
+'use strict';
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const P=new URLSearchParams(location.search);
+let forceMock=P.get('mock')==='1';
+if('serviceWorker' in navigator&&!forceMock&&/^(127\.0\.0\.1|localhost)$/.test(location.hostname))navigator.serviceWorker.register('/sw.js').catch(()=>{});
+const $=s=>document.querySelector(s);
+// mk() only ever receives static markup. Anything that comes from the API goes in through textContent.
+const mk=html=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild};
+const H=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const setT=(e,v)=>{v=String(v);if(e.textContent!==v)e.textContent=v};
+const setIf=(e,k,f)=>{if(e._k!==k){e._k=k;f()}};
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+
+/* ---------- formatting ---------- */
+const gr=h=>h.granted_at>0?h.granted_at:null; // 0 or null both mean never granted
+const p2=n=>String(n).padStart(2,'0');
+const fmtDur=ms=>{let s=Math.max(0,Math.round(ms/1000));if(s<60)return s+'s';const m=s/60|0;if(m<60)return m+'m '+p2(s%60)+'s';return (m/60|0)+'h '+p2(m%60)+'m'};
+const clock=ms=>{const t=Math.max(0,Math.floor(ms/1000)),h=t/3600|0,m=(t%3600)/60|0,s=t%60;return h?`${h}:${p2(m)}:${p2(s)}`:`${m}:${p2(s)}`};
+const fmtWin=s=>s>=3600?(s/3600).toFixed(s%3600?1:0).replace(/\.0$/,'')+'h':Math.round(s/60)+'m';
+const fmtSec=s=>fmtDur(s*1000).replace(/ 00s$/,'').replace(/ 00m$/,'');
+const D=ms=>new Date(ms),hm=ms=>p2(D(ms).getHours())+':'+p2(D(ms).getMinutes());
+const startFmt=ms=>{const d=D(ms),t=new Date();return (d.toDateString()===t.toDateString()?'':p2(d.getMonth()+1)+'-'+p2(d.getDate())+' ')+hm(ms)};
+const fullTs=ms=>{const d=D(ms);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds())};
+// stable agent colour: FNV-1a of the name -> 8 palette slots. Returns a fixed var(--aN), never the raw name.
+const agentVar=n=>{let x=2166136261;for(const c of String(n)){x^=c.charCodeAt(0);x=Math.imul(x,16777619)>>>0}return 'var(--a'+(x%8)+')'};
+const swatch=a=>{const i=H('i','sw');i.style.setProperty('--c',agentVar(a));return i};
+
+/* ---------- animated numbers ---------- */
+function setNum(e,v,f){
+  if(e._t===v)return;const from=e._v==null?v:e._v;e._t=v;const id=e._r=(e._r||0)+1,t0=performance.now();
+  if(RM||from===v){e._v=v;e.textContent=f(v);return}
+  (function s(n){if(e._r!==id)return;const k=Math.min(1,(n-t0)/450),x=from+(v-from)*(1-Math.pow(1-k,3));e._v=x;e.textContent=f(x);if(k<1)requestAnimationFrame(s)})(t0);
+}
+/* keyed list sync for in-flow lists (tables, timeline bars) */
+function sync(parent,map,items,key,make,upd){
+  const seen=new Set(),els=[];
+  items.forEach(it=>{const k=key(it);seen.add(k);let e=map.get(k);if(!e){e=make(it);map.set(k,e);e.classList.add('new');setTimeout(()=>e.classList.remove('new'),700)}upd(e,it);els.push(e)});
+  let cur=parent.firstElementChild;
+  els.forEach(e=>{while(cur&&cur.classList.contains('leave'))cur=cur.nextElementSibling;if(e===cur)cur=cur.nextElementSibling;else parent.insertBefore(e,cur)});
+  for(const [k,e] of map)if(!seen.has(k)){map.delete(k);e.classList.add('leave');setTimeout(()=>e.remove(),RM?0:340)}
+}
+/* absolutely placed rows: enter = fade, move = transform, leave = fade. Never reflows siblings. */
+function vsync(sp,map,items,key,make,upd,rh){
+  const seen=new Set();
+  items.forEach((it,i)=>{const k=key(it);seen.add(k);let e=map.get(k);const y='translateY('+i*rh+'px)';
+    if(!e){e=make(it);map.set(k,e);e._y=y;e.style.transform=y;e.classList.add('new');setTimeout(()=>e.classList.remove('new'),600);sp.append(e)}
+    upd(e,it,i);if(e._y!==y){e._y=y;e.style.transform=y}});
+  for(const [k,e] of map)if(!seen.has(k)){map.delete(k);e.classList.add('leave');setTimeout(()=>e.remove(),RM?0:320)}
+  sp.style.height=items.length*rh+'px';
+}
+
+/* ---------- simulator (same shape as GET /api/state) ---------- */
+function makeSim(){
+  const rnd=Math.random,pick=a=>a[rnd()*a.length|0];
+  const AG=['claude-a','claude-b','codex-1','gemini-1','copilot-1','goose-1','codex-2'];
+  const JOBS=[
+    ['instrumented tests','Running connectedDebugAndroidTest for the checkout flow on API 34','./gradlew connectedDebugAndroidTest'],
+    ['screenshot goldens','Re-record onboarding screenshots after the typography change','./gradlew recordRoborazziDebug'],
+    ['startup benchmark','Macrobenchmark, 10 iterations, cold start of :app','./gradlew :benchmark:connectedBenchmarkAndroidTest'],
+    ['monkey run','Stress the settings screens with 5000 random events','adb shell monkey -p dev.example.app 5000'],
+    ['repro crash #482','Reproduce the rotation crash in the photo picker by hand',null],
+    ['verify deep links','Check that all app links open the right screen after the router rewrite','./gradlew :app:deepLinkSmoke'],
+    ['accessibility sweep','TalkBack traversal order on the new home screen',null]];
+  const DEVS=[['emulator-5554','sdk_gphone64_arm64'],['emulator-5556','sdk_gphone64_arm64'],['R5CT20ABCDE','SM-S911B'],['1A2B3C4D5E','Pixel 7a']];
+  const S={now:0,speed:20,devs:[],hist:[],q:[],id:1,force:[],nextArr:0};
+  const roll=()=>{const r=rnd();return r<.72?'normal':r<.84?'overrun':r<.92?'timeout':'orphan'};
+  function waiter(force){
+    const j=pick(JOBS),kind=force||roll(),expect=force?60:pick([120,300,300,600,600,900]);
+    return{id:S.id++,agent:pick(AG),purpose:j[0],description:j[1],command:j[2],want:rnd()<.15&&S.devs.length?pick(S.devs).serial:null,
+      requested_at:S.now,expect,max:force?150:Math.ceil(expect*2.5/60)*60,patience:S.now+pick([900,1500,2400])*1000,kind};
+  }
+  const base=(w,extra)=>({id:w.id,device:null,agent:w.agent,purpose:w.purpose,description:w.description,command:w.command,want_device:w.want,requested_at:w.requested_at,granted_at:null,released_at:null,end_reason:null,exit_code:null,expect_secs:w.expect,max_secs:w.max,...extra});
+  function grant(w,d){
+    const g=S.now,h=base(w,{device:d.serial,granted_at:g}),e=w.expect*1000;
+    h._hold=w.kind==='overrun'?e*(1.35+rnd()*.5):w.kind==='timeout'?Infinity:w.kind==='orphan'?e*(.3+rnd()*.4):Math.max(20000,e*(.45+rnd()*.6));
+    h._cmd=!!w.command;h._kind=w.kind;
+    d.h=h;d.slot={id:w.id,agent:w.agent,purpose:w.purpose,description:w.description,command:w.command,granted_at:g,expect_secs:w.expect,max_secs:w.max,deadline:g+w.max*1000};
+    S.hist.push(h);
+  }
+  function end(d,reason){
+    const h=d.h;h.released_at=reason==='timeout'?d.slot.deadline:Math.min(S.now,h.granted_at+h._hold);h.end_reason=reason;
+    h.exit_code=h._cmd&&reason==='released'?(rnd()<.9?0:1):null;d.slot=null;d.h=null;
+  }
+  function setN(n){
+    while(S.devs.length<n){const x=DEVS[S.devs.length];S.devs.push({serial:x[0],model:x[1],slot:null,h:null})}
+    while(S.devs.length>n){const d=S.devs.pop();if(d.slot)end(d,'released')}
+  }
+  function step(dt){
+    S.now+=dt;
+    for(const d of S.devs){if(!d.slot)continue;if(S.now>=d.slot.deadline)end(d,'timeout');else if(S.now>=d.h.granted_at+d.h._hold)end(d,d.h._kind==='orphan'?'orphaned':'released')}
+    S.q=S.q.filter(w=>{
+      if(S.now>=w.patience){S.hist.push(base(w,{released_at:S.now,end_reason:'abandoned'}));return false}
+      if(rnd()<dt/(4*3600e3)){S.hist.push(base(w,{released_at:S.now,end_reason:'cancelled'}));return false}
+      return true});
+    while(S.now>=S.nextArr){S.q.push(waiter(S.force.shift()));S.nextArr+=-Math.log(1-rnd())*(600/Math.max(1,S.devs.length))*1000}
+    for(const w of S.q.slice()){const d=S.devs.find(d=>!d.slot&&(!w.want||w.want===d.serial));if(d){grant(w,d);S.q.splice(S.q.indexOf(w),1)}}
+  }
+  function advance(ms){let t=ms;while(t>0){const dt=Math.min(t,5000);step(dt);t-=dt}}
+  function inject(k){
+    if(k==='queue'){for(let i=0;i<3;i++)S.q.push(waiter())}else S.force.push(k),S.nextArr=Math.min(S.nextArr,S.now+1500);
+    if(k==='overrun'){const d=S.devs.find(d=>d.slot);if(d){d.h._hold=Math.max(d.h._hold,d.slot.expect_secs*1000*1.7)}}
+  }
+  const clean=h=>{const o={};for(const k in h)if(k[0]!=='_')o[k]=h[k];return o};
+  function state(win){
+    const now=S.now,since=now-win*1000;
+    S.hist=S.hist.filter(h=>h.released_at==null||h.released_at>now-25*3600e3);
+    const H=S.hist.filter(h=>h.released_at==null||h.released_at>=since).map(clean),G=H.filter(h=>h.granted_at!=null);
+    const waits=G.map(h=>h.granted_at-h.requested_at).sort((a,b)=>a-b),pc=p=>waits.length?waits[Math.min(waits.length-1,Math.ceil(p*waits.length)-1)]:0;
+    const hold=h=>(h.released_at||now)-h.granted_at,done=G.filter(h=>h.released_at!=null);
+    const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,cnt=r=>H.filter(h=>h.end_reason===r).length;
+    const busy=h=>Math.max(0,(h.released_at||now)-Math.max(h.granted_at,since));
+    const ag=new Map();G.forEach(h=>{if(!ag.has(h.agent))ag.set(h.agent,[]);ag.get(h.agent).push(h)});
+    return{now,since,
+      devices:S.devs.map(d=>({serial:d.serial,kind:'android',model:d.model,state:'online',slot:d.slot&&{...d.slot}})),
+      queue:S.q.map(w=>({id:w.id,agent:w.agent,purpose:w.purpose,description:w.description,want_device:w.want,requested_at:w.requested_at,expect_secs:w.expect})),
+      history:H,
+      stats:{grants:G.length,wait_p50_ms:pc(.5),wait_p95_ms:pc(.95),hold_mean_ms:avg(G.map(hold)),expect_ratio:avg(done.map(h=>hold(h)/(h.expect_secs*1000))),
+        timeouts:cnt('timeout'),orphaned:cnt('orphaned'),abandoned:cnt('abandoned'),queued:S.q.length},
+      per_device:S.devs.map(d=>{const L=G.filter(h=>h.device===d.serial),b=L.reduce((s,h)=>s+busy(h),0);return{serial:d.serial,grants:L.length,busy_ms:b,utilisation:Math.min(1,b/(win*1000))}}),
+      per_agent:[...ag].map(([a,L])=>({agent:a,grants:L.length,busy_ms:L.reduce((s,h)=>s+busy(h),0),wait_mean_ms:avg(L.map(h=>h.granted_at-h.requested_at)),timeouts:L.filter(h=>h.end_reason==='timeout').length}))};
+  }
+  // warm up 24h of history, then script one live overrun
+  const real=Date.now();S.now=real-24*3600e3;S.nextArr=S.now;setN(3);
+  while(S.now<real-5000)step(15000);
+  S.now=real;S.force=['timeout','orphan'];
+  const d0=S.devs[0];
+  if(!d0.slot){const w=waiter();w.expect=300;w.max=780;grant(w,d0)}
+  d0.slot.expect_secs=300;d0.slot.max_secs=780;d0.h.expect_secs=300;d0.h.max_secs=780;d0.h.granted_at=d0.slot.granted_at=S.now-330e3;d0.slot.deadline=d0.h.granted_at+780e3;d0.h._hold=520e3;d0.h._kind='overrun';d0.h.requested_at=Math.min(d0.h.requested_at,d0.h.granted_at);
+  while(S.q.length<2)S.q.push(waiter());
+  return{S,advance,state,setN,inject,get speed(){return S.speed},set speed(v){S.speed=v}};
+}
+
+/* ---------- app state ---------- */
+let win=+lsGet('devq.win')||3600,st=null,recvAt=0,rate=1,mode='offline',everLive=false,sim=null,fails=0;
+const now=()=>st?st.now+(Date.now()-recvAt)*rate:Date.now();
+const maps={dev:new Map(),q:new Map(),lane:new Map(),td:new Map(),ta:new Map(),tile:new Map(),log:new Map()};
+const QH=44,LH=44,F={agent:'',device:'',outcome:'',q:''};
+let det=null; // open detail: {id,h}
+
+/* ---------- stat tiles ---------- */
+const INT=v=>Math.round(v)+'';
+const TILES=[
+  ['queued','Waiting',s=>s.queued,INT,s=>s.queued>=3?'warn':'',s=>s.queued?'in the queue':'queue is empty'],
+  ['fail','Timeouts and orphans',s=>s.timeouts+s.orphaned,INT,s=>s.timeouts?'crit':s.orphaned?'warn':'',s=>s.timeouts+' timeouts, '+s.orphaned+' orphaned'],
+  ['expect_ratio','Actual vs expected hold',s=>s.expect_ratio,v=>'\u00d7'+v.toFixed(2),s=>s.expect_ratio>1.15?'warn':'',(s,fin)=>!fin?'no finished runs yet':s.expect_ratio>1.15?'agents under-estimate':'on estimate']];
+// these figures mean nothing until at least one run in the window has finished
+const NEEDS_FIN=new Set(['expect_ratio','wait_p50_ms','wait_p95_ms','hold_mean_ms']);
+const setVal=(e,v,f,ok)=>{if(ok)setNum(e,v,f);else{e._r=(e._r||0)+1;e._t=e._v=undefined;setT(e,'\u2014')}};
+const MORE=[['grants','Grants',s=>s.grants,INT],['wait_p50_ms','Wait p50',s=>s.wait_p50_ms,fmtDur],['wait_p95_ms','Wait p95',s=>s.wait_p95_ms,fmtDur],['hold_mean_ms','Mean hold',s=>s.hold_mean_ms,fmtDur],['abandoned','Abandoned',s=>s.abandoned,INT]];
+TILES.forEach(t=>{const e=mk(`<div class="tile"><span class="tl2">${t[1]}</span><b class="tv">0</b><small></small></div>`);maps.tile.set(t[0],e);$('#tiles').append(e)});
+{const m=mk('<div class="more"></div>');MORE.forEach(t=>{const sp=mk(`<span class="m">${t[1]} <b>0</b></span>`);maps.tile.set(t[0],sp);m.append(sp)});$('#tiles').append(m)}
+
+/* ---------- devices ---------- */
+function mkDev(){
+  const e=mk(`<article class="dev"><div class="r1"><i class="dot"></i><span class="ser mono"></span><span class="mod"></span><span class="stt"></span></div>
+  <div class="r2"><i class="sw"></i><b class="ag"></b><span class="sid mono"></span></div><div class="purpose"></div><div class="desc"></div><code class="cmd"></code>
+  <div class="bar"><i class="fill"></i><i class="ov"></i><u></u></div><div class="nums"><span class="n1"></span><span class="n2"></span></div></article>`);
+  const q=s=>e.querySelector(s);
+  e._r={ser:q('.ser'),mod:q('.mod'),stt:q('.stt'),ag:q('.ag'),sid:q('.sid'),pu:q('.purpose'),de:q('.desc'),cmd:q('.cmd'),fill:q('.fill'),ov:q('.ov'),ex:q('u'),n1:q('.n1'),n2:q('.n2')};
+  return e;
+}
+function updDev(e,d){
+  const r=e._r,s=d.slot,sid=s?s.id:0;e._d=d;
+  setT(r.ser,d.serial);setT(r.mod,d.model||'');
+  e.dataset.s=d.state!=='online'?'off':s?'busy':'free';e.classList.toggle('has',!!s);
+  if(e._sid!==undefined&&e._sid!==sid){e.classList.add('chg');setTimeout(()=>e.classList.remove('chg'),450)}e._sid=sid;
+  if(s){e.style.setProperty('--c',agentVar(s.agent));setT(r.ag,s.agent);setT(r.sid,'#'+s.id);setT(r.pu,s.purpose);setT(r.de,s.description||'');setT(r.cmd,s.command?'$ '+s.command:'');r.cmd.title=s.command||''}
+  else{setT(r.ag,'Available');setT(r.sid,'')}
+}
+
+/* ---------- queue ---------- */
+function mkQ(){
+  const e=mk(`<div class="q"><span class="pos"></span><div class="who"><i class="sw"></i><b></b></div><b class="wt"></b><small></small><span class="wd"></span></div>`);
+  e._r={pos:e.querySelector('.pos'),ag:e.querySelector('.who b'),sm:e.querySelector('small'),wt:e.querySelector('.wt'),wd:e.querySelector('.wd')};return e;
+}
+function updQ(e,w,i){
+  const r=e._r;e._w=w;e.style.setProperty('--c',agentVar(w.agent));setT(r.pos,i+1);setT(r.ag,w.agent);setT(r.sm,w.purpose);r.sm.title=w.description||'';
+  setT(r.wd,w.want_device?'wants '+w.want_device:'any device');
+}
+
+/* ---------- timeline ---------- */
+function mkLane(){
+  const e=mk(`<div class="lane"><div class="ll"><span class="mono"></span><small></small></div><div class="track"></div></div>`);
+  e._r={ser:e.querySelector('.mono'),u:e.querySelector('small'),track:e.querySelector('.track')};e._bars=new Map();return e;
+}
+const mkBar=()=>mk('<div class="bar2" role="button" tabindex="-1"></div>');
+function updBar(e,h){
+  e._h=h;e.style.setProperty('--c',agentVar(h.agent));
+  const ex=h.expect_secs*1000,hold=(h.released_at||now())-gr(h);
+  e.classList.toggle('act',h.released_at==null);e.classList.toggle('to',h.end_reason==='timeout');e.classList.toggle('or',h.end_reason==='orphaned');e.classList.toggle('ovr',hold>ex*1.02&&h.end_reason!=='timeout');
+  e.setAttribute('aria-label',`${h.agent}, ${h.purpose}, ${outcomeOf(h)}`);
+  e.title=`${h.agent}, ${h.purpose}\n${fmtDur(hold)} of ${fmtDur(ex)} expected, ${h.end_reason||'active'}${h.exit_code!=null?', exit '+h.exit_code:''}\nwaited ${fmtDur(gr(h)-h.requested_at)}`;
+}
+
+/* ---------- tables ---------- */
+function mkRowD(){const e=mk(`<tr><td class="mono"></td><td class="g"></td><td class="b"></td><td><span class="ub"><i></i></span><span class="u"></span></td></tr>`);e._r={s:e.children[0],g:e.querySelector('.g'),b:e.querySelector('.b'),i:e.querySelector('i'),u:e.querySelector('.u')};return e}
+function mkRowA(a){const e=mk(`<tr><td><span class="cl"><i class="sw"></i><span></span></span></td><td class="g"></td><td class="b"></td><td class="w"></td><td class="t"></td></tr>`);e.querySelector('.sw').style.setProperty('--c',agentVar(a.agent));e._r={n:e.querySelector('.cl span'),g:e.querySelector('.g'),b:e.querySelector('.b'),w:e.querySelector('.w'),t:e.querySelector('.t')};return e}
+
+/* ---------- run log ---------- */
+const startOf=h=>gr(h)!=null?gr(h):h.requested_at;
+const outcomeOf=h=>h.released_at==null?'active':(h.end_reason||'done');
+function mkLog(){
+  const e=mk(`<button type="button" class="lr lgrid"><span class="c-id mono"></span><span class="c-ag"><i class="sw"></i><b></b></span><span class="c-dev mono"></span><span class="c-run"><span class="pu"></span><small></small></span><span class="c-ex mono"></span><span class="c-out"><span class="bd"></span></span><span class="c-wait"></span><span class="c-hold"></span><span class="c-start"></span></button>`);
+  const q=s=>e.querySelector(s);
+  e._r={id:q('.c-id'),ag:q('.c-ag b'),dev:q('.c-dev'),pu:q('.pu'),cmd:q('small'),ex:q('.c-ex'),bd:q('.bd'),wait:q('.c-wait'),hold:q('.c-hold'),start:q('.c-start')};return e;
+}
+function updLog(e,h){
+  const r=e._r,out=outcomeOf(h);e._h=h;e.style.setProperty('--c',agentVar(h.agent));
+  setT(r.id,'#'+h.id);setT(r.ag,h.agent);setT(r.dev,h.device||'none');setT(r.pu,h.purpose);setT(r.cmd,h.command?'$ '+h.command:(h.description||''));
+  setT(r.ex,h.exit_code!=null?h.exit_code:'');r.ex.classList.toggle('bad',h.exit_code!=null&&h.exit_code!==0);
+  setT(r.bd,out);r.bd.className='bd '+out;setT(r.start,startFmt(startOf(h)));
+  setT(r.wait,fmtDur((gr(h)!=null?gr(h):h.released_at||now())-h.requested_at));
+  holdCell(e,h);
+}
+function holdCell(e,h){
+  const r=e._r;if(gr(h)==null){setT(r.hold,'none');e.classList.remove('over');r.hold.classList.remove('over');return}
+  const hold=(h.released_at||now())-gr(h),ex=h.expect_secs*1000;setT(r.hold,clock(hold)+' / '+clock(ex));r.hold.classList.toggle('over',hold>ex*1.02);
+}
+function setOpts(sel,key,vals){setIf(sel,vals.join('\u0000'),()=>{const v=sel.value,all=sel.options[0].text;sel.replaceChildren(new Option(all,''),...vals.map(x=>new Option(x,x)));sel.value=vals.includes(v)?v:'';F[key]=sel.value})}
+function renderLog(s){
+  setOpts($('#f-agent'),'agent',[...new Set(s.history.map(h=>h.agent))].sort());
+  setOpts($('#f-device'),'device',s.devices.map(d=>d.serial).sort());
+  let L=s.history.filter(h=>(!F.agent||h.agent===F.agent)&&(!F.device||h.device===F.device)&&(!F.outcome||outcomeOf(h)===F.outcome)&&
+    (!F.q||[h.purpose,h.description,h.command,h.agent,h.device].some(x=>x&&String(x).toLowerCase().includes(F.q))));
+  L.sort((a,b)=>startOf(b)-startOf(a)||b.id-a.id);const total=L.length;L=L.slice(0,200);
+  setT($('#lc'),total>L.length?`Showing ${L.length} of ${total}`:total+(total===1?' run':' runs'));
+  vsync($('#ls'),maps.log,L,h=>h.id,mkLog,updLog,LH);
+}
+
+/* ---------- detail drawer ---------- */
+const SV='ht'+'tp://www.w3.org/2000/svg'; // namespace id, not a network URL
+const S_=(t,a,x)=>{const e=document.createElementNS(SV,t);for(const k in a)e.setAttribute(k,a[k]);if(x!=null)e.textContent=x;return e};
+function mini(h,n){
+  const x0=8,x1=352,t0=h.requested_at,g=gr(h),end=h.released_at!=null?h.released_at:n,mxs=h.max_secs||0;
+  let t1=Math.max(g!=null&&mxs?g+mxs*1000:end,end);if(t1<=t0)t1=t0+1;
+  const X=t=>x0+(Math.min(t,t1)-t0)/(t1-t0)*(x1-x0);
+  const v=S_('svg',{viewBox:'0 0 360 84',class:'mini',role:'img','aria-label':'Requested, granted and released against expected and max'});
+  v.append(S_('line',{x1:x0,x2:x1,y1:44,y2:44,class:'ax'}));
+  const wEnd=g!=null?g:end;
+  v.append(S_('rect',{x:X(t0),y:38,width:Math.max(1,X(wEnd)-X(t0)),height:12,class:'wait'}));
+  v.append(S_('text',{x:x0,y:12},'requested'));
+  if(g!=null){
+    const hb=S_('rect',{x:X(g),y:34,width:Math.max(2,X(end)-X(g)),height:20,rx:3});hb.style.fill=agentVar(h.agent);v.append(hb);
+    const ex=g+h.expect_secs*1000;
+    v.append(S_('line',{x1:X(ex),x2:X(ex),y1:28,y2:60,class:'tk'}),S_('text',{x:Math.min(x1,Math.max(X(ex)-3,x0+44)),y:76,'text-anchor':'end'},'expected'));
+    // top labels: keep each one inside the viewBox; drop "max" if it would touch "granted"
+    const gx=Math.min(Math.max(X(g)+3,x0+52),x1-70);
+    v.append(S_('text',{x:gx,y:12},'granted'));
+    if(mxs){const mx=g+mxs*1000;v.append(S_('line',{x1:X(mx),x2:X(mx),y1:28,y2:60,class:'tkm'}));if(gx+38<x1-22)v.append(S_('text',{x:x1,y:12,'text-anchor':'end'},'max'))}
+  }
+  return v;
+}
+function dlRow(dl,k,v){dl.append(H('dt',null,k));const d=H('dd');if(v instanceof Node)d.append(v);else d.textContent=v;dl.append(d)}
+function fillDetail(){
+  if(!det||!st)return;
+  if(String(getSelection()).length&&$('#drb').contains(getSelection().anchorNode))return; // don't wipe a text selection
+  const f=st.history.find(x=>x.id===det.id);det.gone=!f;if(f){det.h=f;det.at=null}else if(!det.at)det.at=now();
+  const h=det.h,n=det.gone?det.at:now(),b=$('#drb'),sc=b.scrollTop;
+  setT($('#drt'),'Run #'+h.id);b.replaceChildren();
+  if(det.gone)b.append(H('p','mut','No longer in the selected window. Showing the last data received.'));
+  b.append(mini(h,n));
+  const dl=H('dl'),out=outcomeOf(h),ag=H('span','cl');ag.append(swatch(h.agent),H('span',null,h.agent));
+  const bd=H('span','bd '+out,out);
+  dlRow(dl,'Agent',ag);dlRow(dl,'Outcome',bd);dlRow(dl,'Device',h.device||'none (never granted)');dlRow(dl,'Wanted device',h.want_device||'any');
+  dlRow(dl,'Purpose',h.purpose);dlRow(dl,'Description',h.description||'none');
+  dlRow(dl,'Command',h.command?H('pre',null,h.command):'none');dlRow(dl,'Exit code',h.exit_code!=null?String(h.exit_code):'none');
+  dlRow(dl,'Requested',fullTs(h.requested_at));dlRow(dl,'Granted',gr(h)!=null?fullTs(gr(h)):'not granted');
+  dlRow(dl,'Released',h.released_at!=null?fullTs(h.released_at):'still running');
+  dlRow(dl,'Wait',fmtDur((gr(h)!=null?gr(h):h.released_at!=null?h.released_at:n)-h.requested_at));
+  dlRow(dl,'Hold',gr(h)!=null?fmtDur((h.released_at!=null?h.released_at:n)-gr(h)):'none');
+  dlRow(dl,'Expected',fmtSec(h.expect_secs));dlRow(dl,'Max',h.max_secs!=null?fmtSec(h.max_secs):'unknown');
+  b.append(dl);b.scrollTop=sc;
+}
+let lastFocus=null;
+const inertEls=()=>[document.querySelector('.wrap'),document.getElementById('tune')].filter(Boolean);
+function openDetail(id){const h=st&&st.history.find(x=>x.id===id);if(!h)return;lastFocus=document.activeElement;det={id,h};fillDetail();inertEls().forEach(e=>{e.inert=true});document.body.classList.add('dopen');$('#dr').setAttribute('aria-hidden','false');setTimeout(()=>$('#drx').focus(),50)}
+function closeDetail(){if(!det)return;det=null;document.body.classList.remove('dopen');$('#dr').setAttribute('aria-hidden','true');inertEls().forEach(e=>{e.inert=false});if(lastFocus&&lastFocus.isConnected&&lastFocus.focus)lastFocus.focus()}
+$('#drx').addEventListener('click',closeDetail);$('#scrim').addEventListener('click',closeDetail);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail()});
+$('#ls').addEventListener('click',e=>{const r=e.target.closest('.lr');if(r&&r._h)openDetail(r._h.id)});
+$('#tlc').addEventListener('click',e=>{const b=e.target.closest('.bar2');if(b&&b._h)openDetail(b._h.id)});
+// one tab stop per lane (roving tabindex); arrows move between runs, Enter or Space opens
+const barsOf=l=>[...l._bars.values()].filter(e=>!e.classList.contains('leave')).sort((a,b)=>gr(a._h)-gr(b._h));
+function rove(l,t){const b=barsOf(l);if(!b.length)return;t=t||(l._tab&&b.includes(l._tab)?l._tab:b[b.length-1]);b.forEach(e=>{e.tabIndex=e===t?0:-1});l._tab=t}
+$('#tlc').addEventListener('focusin',e=>{const b=e.target.closest('.bar2'),l=b&&b.closest('.lane');if(l&&l._bars)rove(l,b)});
+$('#tlc').addEventListener('keydown',e=>{const b=e.target.closest('.bar2');if(!b||!b._h)return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();openDetail(b._h.id)}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const l=b.closest('.lane'),a=barsOf(l),i=a.indexOf(b)+(e.key==='ArrowRight'?1:-1);if(a[i]){e.preventDefault();rove(l,a[i]);a[i].focus()}}});
+[['#f-agent','agent'],['#f-device','device'],['#f-out','outcome']].forEach(([s,k])=>$(s).addEventListener('change',e=>{F[k]=e.target.value;if(st)renderLog(st)}));
+$('#f-q').addEventListener('input',e=>{F.q=e.target.value.trim().toLowerCase();if(st)renderLog(st)});
+
+/* ---------- render (on each new state) ---------- */
+let bad=false;
+const sec=f=>{try{f()}catch(e){bad=true;console.error(e)}};
+function render(s){
+  bad=false;st=s;const L=s.devices.length,busy=s.devices.filter(d=>d.slot).length,to=+s.stats.timeouts||0;
+  sec(()=>{const g=$('#glance');
+    setIf(g,busy+'/'+L+'|'+s.queue.length+'|'+to,()=>{g.replaceChildren();[[busy+'/'+L,' busy'],[s.queue.length,' waiting'],...(to?[[to,' timed out']]:[])].forEach(([n,t])=>{const sp=H('span');sp.append(H('b',null,n),t);g.append(sp)})})});
+  sec(()=>{setT($('#dsub'),L+(L===1?' device':' devices'));$('#dempty').hidden=L>0;
+    sync($('#dgrid'),maps.dev,s.devices,d=>d.serial,mkDev,updDev);
+    const last={};s.history.forEach(h=>{if(h.released_at&&h.device&&['released','timeout','orphaned'].includes(h.end_reason)&&(!last[h.device]||h.released_at>last[h.device].released_at))last[h.device]=h});
+    maps.dev.forEach((e,k)=>e._last=last[k])});
+  sec(()=>{vsync($('#ql'),maps.q,s.queue,w=>w.id,mkQ,updQ,QH);setT($('#qcnt'),s.queue.length);$('#qempty').style.opacity=s.queue.length?0:1});
+  sec(()=>{const b=s.blocked||[],e=$('#bl');setT($('#bcnt'),b.length||'');
+    setIf(e,JSON.stringify(b),()=>{e.replaceChildren();if(!b.length)e.append(H('span','mut','none'));b.forEach(x=>{const d=H('div');d.title=x.command;d.append(new Date(x.at).toLocaleTimeString()+' ',H('b',null,x.agent),' '+x.command);e.append(d)})})});
+  const fin=s.history.some(h=>h.released_at!=null);
+  sec(()=>{TILES.forEach(t=>{const e=maps.tile.get(t[0]),ok=fin||!NEEDS_FIN.has(t[0]);setVal(e.querySelector('.tv'),t[2](s.stats),t[3],ok);setT(e.querySelector('small'),t[5](s.stats,fin));const tone=ok&&t[4](s.stats);if(tone)e.dataset.t=tone;else delete e.dataset.t});
+    MORE.forEach(t=>setVal(maps.tile.get(t[0]).querySelector('b'),t[2](s.stats),t[3],fin||!NEEDS_FIN.has(t[0])))});
+  sec(()=>{sync($('#tlc'),maps.lane,s.devices,d=>d.serial,mkLane,(e,d)=>{
+    setT(e._r.ser,d.serial);const pd=s.per_device.find(x=>x.serial===d.serial);setT(e._r.u,pd?Math.round(pd.utilisation*100)+'% busy':'');
+    sync(e._r.track,e._bars,s.history.filter(h=>h.device===d.serial&&gr(h)!=null),h=>h.id,mkBar,updBar);rove(e)})});
+  sec(()=>{sync($('#tdev'),maps.td,[...s.per_device].sort((a,b)=>a.serial<b.serial?-1:1),x=>x.serial,mkRowD,(e,x)=>{const r=e._r;setT(r.s,x.serial);setNum(r.g,x.grants,v=>Math.round(v)+'');setNum(r.b,x.busy_ms,fmtDur);setNum(r.u,x.utilisation*100,v=>Math.round(v)+'%');r.i.style.width=Math.round(x.utilisation*100)+'%'});
+    sync($('#tag'),maps.ta,[...s.per_agent].sort((a,b)=>a.agent<b.agent?-1:1),x=>x.agent,mkRowA,(e,x)=>{const r=e._r;setT(r.n,x.agent);setNum(r.g,x.grants,v=>Math.round(v)+'');setNum(r.b,x.busy_ms,fmtDur);setNum(r.w,x.wait_mean_ms,fmtDur);setT(r.t,x.timeouts);r.t.className='t '+(x.timeouts?'hot':'z')})});
+  sec(()=>{const ag=[...new Set(s.history.map(h=>h.agent))].sort(),lg=$('#leg');
+    setIf(lg,ag.join('\u0000'),()=>{lg.replaceChildren();ag.forEach(a=>{const sp=H('span');sp.append(swatch(a),a);lg.append(sp)});
+      const t=document.createElement('template');t.innerHTML='<span class="sep"></span><span><i class="k"></i>done</span><span><i class="k ovr"></i>over estimate</span><span><i class="k or"></i>orphaned</span><span><i class="k to"></i>timeout</span>';lg.append(t.content)});
+    setT($('#tlsub'),'last '+fmtWin(win));
+    const ax=$('#ax');setIf(ax,win,()=>{ax.replaceChildren(...[0,.25,.5,.75,1].map(f=>H('span',null,f===1?'now':'\u2212'+fmtWin(win*(1-f)))))})});
+  sec(()=>renderLog(s));sec(fillDetail);sec(tick0);
+  return !bad;
+}
+
+/* ---------- 4 Hz updates: countdowns, elapsed, bars, wait clocks ---------- */
+function tick(){try{tick0()}catch(e){console.error(e)}}
+function tick0(){
+  if(!st)return;const n=now(),since=n-win*1000;
+  maps.dev.forEach(e=>{
+    const d=e._d,s=d&&d.slot,r=e._r,off=d&&d.state!=='online';
+    if(!s){const l=e._last;setT(r.pu,off?'Not reachable':l?`Idle ${fmtDur(n-l.released_at)}, last ${l.agent} (${l.end_reason})`:'No recent use');setT(r.stt,off?d.state:'Free');e.classList.remove('over','crit');return}
+    const el=n-s.granted_at,ex=s.expect_secs*1000,mx=Math.max(1,s.max_secs*1000),rem=s.deadline-n,over=el>ex,crit=rem<Math.min(mx*.1,30000);
+    e.classList.toggle('over',over&&!crit);e.classList.toggle('crit',crit);
+    setT(r.stt,off?d.state:crit?'Near limit':over?'Overrun':'Busy');
+    r.fill.style.width=Math.min(el,ex)/mx*100+'%';r.ov.style.left=ex/mx*100+'%';r.ov.style.width=Math.max(0,Math.min(el,mx)-ex)/mx*100+'%';r.ex.style.left=ex/mx*100+'%';
+    setT(r.n1,over?clock(el)+', '+clock(el-ex)+' over '+clock(ex):clock(el)+' of '+clock(ex));r.n1.classList.toggle('over',over);
+    setT(r.n2,rem>0?'stops in '+clock(rem):'limit reached');r.n2.classList.toggle('low',crit);
+  });
+  maps.q.forEach(e=>{if(e._w)setT(e._r.wt,clock(n-e._w.requested_at))});
+  maps.log.forEach(e=>{if(e._h&&e._h.released_at==null)holdCell(e,e._h)});
+  maps.lane.forEach(l=>l._bars.forEach(e=>{
+    const h=e._h,a=Math.max(gr(h),since),b=h.released_at||n;
+    if(b<since){e.style.opacity=0;return}e.style.opacity='';
+    e.style.left=(a-since)/(win*1000)*100+'%';e.style.width=Math.max(0,(b-a)/(win*1000)*100)+'%';
+    if(h.released_at==null)e.classList.toggle('ovr',n-gr(h)>h.expect_secs*1020);
+  }));
+}
+
+/* ---------- connection ---------- */
+const CONN={live:'live',mock:'simulator',fallback:'simulator, API unreachable',offline:'offline, retrying'};
+function setConn(m){mode=m;const c=$('#conn');c.dataset.m=m;setT(c.querySelector('span'),CONN[m])}
+let gen=0,timer=0;
+const STAT_KEYS=['grants','wait_p50_ms','wait_p95_ms','hold_mean_ms','expect_ratio','timeouts','orphaned','abandoned','queued'];
+const validState=s=>s&&typeof s.now==='number'&&['devices','queue','history','per_device','per_agent'].every(k=>Array.isArray(s[k]))&&s.stats&&typeof s.stats==='object'&&STAT_KEYS.every(k=>typeof s.stats[k]==='number');
+async function loop(skipAdvance){
+  clearTimeout(timer);const my=++gen;let s=null,fromApi=false;
+  try{
+    if(!forceMock&&(mode!=='fallback'||++fails%10===0)){
+      try{
+        const r=await fetch('/api/state?window='+win,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(5000):undefined});
+        if(!r.ok)throw 0;s=await r.json();if(!validState(s))throw 0;
+        if(my!==gen)return; // stale: the window was switched meanwhile
+        fromApi=true;rate=1;recvAt=Date.now();
+      }catch(e){
+        if(my!==gen)return;s=null;
+        if(everLive){setConn('offline');return}
+        if(mode!=='fallback')fails=0;setConn('fallback');
+      }
+    }
+    if(!s){if(!sim)sim=makeSim();if(!skipAdvance)sim.advance(1000*sim.speed);s=sim.state(win);rate=sim.speed;recvAt=Date.now();if(mode!=='fallback')setConn('mock')}
+    const ok=render(s);
+    if(fromApi){if(ok){everLive=true;fails=0;sim=null;setConn('live')}else setConn(everLive?'offline':'fallback')} // live only after a clean render
+  }catch(e){console.error(e)}
+  finally{if(my===gen)timer=setTimeout(loop,1000)}
+}
+$('#wsw').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;win=+b.dataset.w;lsSet('devq.win',win);syncWin();loop(true)});
+function syncWin(){document.querySelectorAll('#wsw button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.w===win))}
+syncWin();
+setInterval(tick,250);
+if(forceMock)sim=makeSim();
+
+loop();
+})();
+</script>
+</body>
+</html>

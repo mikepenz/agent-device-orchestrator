@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="t d">
+<title id="t">devq</title>
+<desc id="d">System map: agents (Claude, Codex, Gemini, subagents) request a slot from a FIFO queue stored in one SQLite file with no daemon. The queue hands out exclusive slots to devices (an emulator, a phone, a static resource). devq live watches all of it.</desc>
+<rect width="1200" height="420" fill="#ffffff"/>
+<rect x=".75" y=".75" width="1198.5" height="418.5" rx="12" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<text x="56" y="78" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="56" font-weight="700" fill="#0f0f10" text-anchor="start">devq</text>
+<text x="204" y="76" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="400" fill="#55565b" text-anchor="start">A fair queue for shared devices. One SQLite file, no daemon.</text>
+<text x="56" y="128" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#85868c" text-anchor="start">agents ask</text>
+<text x="350" y="128" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#85868c" text-anchor="start">queue</text>
+<text x="700" y="128" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#85868c" text-anchor="start">slots</text>
+<text x="840" y="128" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#85868c" text-anchor="start">devices</text>
+<rect x="56" y="165" width="14" height="14" rx="3" fill="#2a78d6"/>
+<text x="82" y="179" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">claude</text>
+<line x1="190" y1="172" x2="350" y2="172" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="56" y="210" width="14" height="14" rx="3" fill="#eb6834"/>
+<text x="82" y="224" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">codex</text>
+<line x1="190" y1="217" x2="350" y2="217" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="56" y="255" width="14" height="14" rx="3" fill="#1baf7a"/>
+<text x="82" y="269" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">gemini</text>
+<line x1="190" y1="262" x2="350" y2="262" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="56" y="300" width="14" height="14" rx="3" fill="#6250d6"/>
+<text x="82" y="314" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">subagent</text>
+<line x1="190" y1="307" x2="350" y2="307" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="350" y="146" width="290" height="180" rx="10" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<text x="372" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="22" font-weight="600" fill="#0f0f10" text-anchor="start">devq.db</text>
+<text x="372" y="206" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#55565b" text-anchor="start">FIFO, tickets, exclusive</text>
+<rect x="372" y="226" width="130" height="20" rx="5" fill="#eb6834" fill-opacity="0.55"/>
+<text x="518" y="242" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="18" font-weight="400" fill="#55565b" text-anchor="start">#41</text>
+<rect x="372" y="256" width="130" height="20" rx="5" fill="#1baf7a" fill-opacity="1"/>
+<text x="518" y="272" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="18" font-weight="400" fill="#55565b" text-anchor="start">#42</text>
+<rect x="372" y="286" width="130" height="20" rx="5" fill="#6250d6" fill-opacity="0.55"/>
+<text x="518" y="302" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="18" font-weight="400" fill="#55565b" text-anchor="start">#43</text>
+<line x1="640" y1="193" x2="700" y2="193" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="700" y="175" width="36" height="36" rx="8" fill="#2a78d6"/>
+<text x="718" y="200" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<line x1="736" y1="193" x2="840" y2="193" stroke="#d9d9de" stroke-width="1.5"/>
+<line x1="640" y1="238" x2="700" y2="238" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="700" y="220" width="36" height="36" rx="8" fill="#2a78d6"/>
+<text x="718" y="245" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<line x1="736" y1="238" x2="840" y2="238" stroke="#d9d9de" stroke-width="1.5"/>
+<line x1="640" y1="283" x2="700" y2="283" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="700" y="265" width="36" height="36" rx="8" fill="#2a78d6"/>
+<text x="718" y="290" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<line x1="736" y1="283" x2="840" y2="283" stroke="#d9d9de" stroke-width="1.5"/>
+<rect x="840" y="174" width="304" height="38" rx="8" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<text x="858" y="200" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">emulator-5554</text>
+<text x="1126" y="199" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#17803d" text-anchor="end">busy</text>
+<rect x="840" y="219" width="304" height="38" rx="8" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<text x="858" y="245" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">phone</text>
+<text x="1126" y="244" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#17803d" text-anchor="end">busy</text>
+<rect x="840" y="264" width="304" height="38" rx="8" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<text x="858" y="290" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="400" fill="#0f0f10" text-anchor="start">rig-a</text>
+<text x="1126" y="289" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="#55565b" text-anchor="end">static</text>
+<rect x="56" y="350" width="1088" height="48" rx="10" fill="none" stroke="#d9d9de" stroke-width="1.5"/>
+<circle cx="82" cy="374" r="6" fill="#2a78d6"/>
+<text x="100" y="381" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" font-size="20" font-weight="600" fill="#0f0f10" text-anchor="start">devq live</text>
+<text x="224" y="381" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="400" fill="#55565b" text-anchor="start">watches the same file: devices, queue, timeline, run log</text>
+</svg>

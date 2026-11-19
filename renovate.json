@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovateapp.com/renovate-schema.json",
+  "extends": ["local>mikepenz/convention"],
+  "cargo": {
+    "rangeStrategy": "pin",
+    "minimumReleaseAge": "7 days",
+    "internalChecksFilter": "strict"
+  },
+  "github-actions": {
+    "pinDigests": true,
+    "minimumReleaseAge": "7 days"
+  }
+}

@@ -1,0 +1,4 @@
+# gitleaks: extend the default ruleset, never replace it. Only allowlist values
+# that are public by design; anything that grants access belongs in a secret store.
+[extend]
+useDefault = true

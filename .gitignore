@@ -30,3 +30,4 @@ design/src/artifact.html
 # Secrets never belong in the repo
 .env
 .env.*
+site/_site/

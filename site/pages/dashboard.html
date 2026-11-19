@@ -1,0 +1,24 @@
+<h1>Live dashboard</h1>
+<p class="lead">A local page for devices, queue, timeline and the run log.</p>
+
+<figure class="shot">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/dashboard-dark.png">
+    <img src="art/dashboard-light.png" width="3200" height="2600" alt="devq live: three devices with holders and progress bars, a two-entry queue, a one-hour timeline, stats and the run log">
+  </picture>
+</figure>
+
+<h2 id="server">Server</h2>
+<p><code>devq live</code> serves on 127.0.0.1 only and returns 403 unless the <code>Host</code> header is <code>127.0.0.1:&lt;port&gt;</code> or <code>localhost:&lt;port&gt;</code> (DNS rebinding guard). <code>GET /</code> is the page, <code>GET /api/state?window=&lt;secs&gt;</code> returns JSON. Append <code>?mock=1</code> for the built-in simulator.</p>
+<p>The page shows Devices, Queue, Timeline (1h, 6h, 24h), a stat strip, the Runs log, and per-device and per-agent tables. Blocked hook attempts appear too.</p>
+
+<h2 id="mac-app">Run it as a Mac app</h2>
+<pre><code>cargo install --path .      # a stable binary path for launchd
+devq service install        # LaunchAgent: starts at login, restarts on crash (--port, default 7878)</code></pre>
+<p>Open <code>http://127.0.0.1:7878/</code> and install the page: Chrome menu, "Install devq live", or Safari, File, "Add to Dock". <code>devq service status</code> shows the launchd state, <code>restart</code> after upgrading the binary, <code>uninstall</code> removes it. Logs go to <code>~/.devq/live.log</code>. macOS only; elsewhere run <code>devq live</code> under systemd <code>--user</code>.</p>
+
+<h2 id="sql">Query the database</h2>
+<p>The database is plain SQLite. Hold time per agent:</p>
+<pre><code>sqlite3 ~/.devq/devq.db "SELECT agent, COUNT(*) AS grants, SUM(released_at - granted_at) / 1000.0 AS held_s
+  FROM slots WHERE released_at IS NOT NULL AND granted_at IS NOT NULL GROUP BY agent ORDER BY held_s DESC"</code></pre>
+<p>Columns of <code>slots</code> include <code>state</code>, <code>end_reason</code> (<code>released</code>, <code>timeout</code>, <code>orphaned</code>, <code>cancelled</code>, <code>abandoned</code>), <code>command</code> and <code>exit_code</code>. Times are unix milliseconds.</p>

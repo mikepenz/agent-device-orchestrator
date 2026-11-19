@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>{{title}}</title>
+    <meta name="description" content="{{desc}}">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="./"><img src="icon.svg" alt="" width="28" height="28"><span>devq<span class="dot">.</span></span></a>
+      <nav><a href="./"{{nav_docs}}>Docs</a><a href="commands.html"{{nav_commands}}>Commands</a><a href="agents.html"{{nav_agents}}>Agents</a></nav>
+      <span class="sp"></span>
+      <a class="btn" href="./#quickstart">Quickstart</a>
+      <a class="gh" href="https://github.com/mikepenz/agent-device-orchestrator" aria-label="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </header>
+    <div class="wrap">
+      <aside class="side">
+{{sidebar}}
+      </aside>
+      <main>
+        <article>
+{{body}}
+{{pager}}
+          <p class="foot"><a href="https://mikepenz.dev">Mike Penz</a> · <a href="https://blog.mikepenz.dev">Blog</a> · <a href="https://mikepenz.dev/privacy.html">Privacy</a> · <a href="https://mikepenz.dev/terms.html">Terms &amp; Legal Notice</a></p>
+        </article>
+      </main>
+      <aside class="toc">
+{{toc}}
+      </aside>
+    </div>
+    <script>
+      document.querySelectorAll("pre").forEach((p) => {
+        const b = document.createElement("button");
+        b.className = "copy"; b.type = "button"; b.textContent = "Copy";
+        b.onclick = async () => { try { await navigator.clipboard.writeText(p.innerText.trimEnd()); b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch {} };
+        const w = document.createElement("div"); w.className = "pre"; p.replaceWith(w); w.append(p, b);
+      });
+      // highlight the current section in "On this page"
+      const links = [...document.querySelectorAll(".toc a[href^='#']")];
+      if (links.length && "IntersectionObserver" in window) {
+        const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((l) => l.classList.toggle("on", l.hash === "#" + e.target.id)); }), { rootMargin: "-80px 0px -70% 0px" });
+        links.forEach((l) => { const t = document.getElementById(l.hash.slice(1)); if (t) io.observe(t); });
+      }
+    </script>
+  </body>
+</html>

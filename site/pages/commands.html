@@ -1,0 +1,55 @@
+<h1>Commands</h1>
+<p class="lead">Everyday use is <code>devq run</code>. The rest is for interactive sessions and inspection.</p>
+
+<h2 id="everyday">Everyday</h2>
+<pre><code>devq devices                      # what the pool contains
+devq run --agent me --purpose "instrumented tests" -- ./gradlew connectedDebugAndroidTest
+devq request --agent me --purpose "manual poking"   # prints "&lt;slot&gt; &lt;serial&gt;"
+devq release 2                                      # give the slot back
+devq live --open                  # dashboard in the browser</code></pre>
+<p><code>devq run</code> sets <code>ANDROID_SERIAL</code>, <code>DEVQ_DEVICE</code> and <code>DEVQ_SLOT</code> for the command, so use <code>adb -s "$ANDROID_SERIAL"</code> and never "whatever is attached".</p>
+
+<h2 id="flags">Slot flags</h2>
+<p>For <code>request</code> and <code>run</code>.</p>
+<table>
+  <tr><th>Flag</th><th>Default</th><th>Meaning</th></tr>
+  <tr><td><code>--agent</code></td><td>env <code>DEVQ_AGENT</code></td><td>Who is asking. Required, except with <code>--ticket</code>.</td></tr>
+  <tr><td><code>--purpose</code></td><td>none</td><td>Why. Required, except with <code>--ticket</code>.</td></tr>
+  <tr><td><code>--description</code></td><td><code>""</code></td><td>What the work does.</td></tr>
+  <tr><td><code>--expect</code></td><td><code>10m</code></td><td>Expected hold time.</td></tr>
+  <tr><td><code>--max</code></td><td><code>30m</code></td><td>Hard limit, at least <code>--expect</code>. Enforced.</td></tr>
+  <tr><td><code>--device</code></td><td>any</td><td>Pin to one serial.</td></tr>
+</table>
+<p>Durations: <code>90s</code>, <code>10m</code>, <code>1h30m</code>, <code>2d</code> (units ms, s, m, h, d, w).</p>
+
+<h2 id="reference">Command list</h2>
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>devq request</code></td><td>Queue for a device and block until granted. Also <code>--wait</code>, <code>--ticket</code>, <code>--json</code>.</td></tr>
+  <tr><td><code>devq release &lt;ID&gt;</code></td><td>Release an active slot or cancel a waiting one.</td></tr>
+  <tr><td><code>devq run -- &lt;CMD&gt;</code></td><td>Acquire, run, release. Exits with the command's exit code.</td></tr>
+  <tr><td><code>devq status</code></td><td>Devices, holders and queue. <code>--json</code> available.</td></tr>
+  <tr><td><code>devq devices</code></td><td>Pool contents: serial, kind, state, model.</td></tr>
+  <tr><td><code>devq live</code></td><td>Web dashboard. <code>--port</code> (7878), <code>--open</code>.</td></tr>
+  <tr><td><code>devq service</code></td><td>Run <code>devq live</code> as a macOS launchd service.</td></tr>
+  <tr><td><code>devq skills</code></td><td>Install and manage the bundled agent skill.</td></tr>
+  <tr><td><code>devq hook</code></td><td>Optional guardrail against raw adb.</td></tr>
+</table>
+
+<h2 id="exit-codes">Exit codes</h2>
+<table>
+  <tr><td><code>0</code></td><td>Granted. For <code>run</code>, the command's own code.</td></tr>
+  <tr><td><code>75</code></td><td><code>--wait</code> expired. <code>request</code> prints <code>ticket &lt;id&gt;</code>; re-run with <code>--ticket &lt;id&gt;</code> within about 30s to keep your place.</td></tr>
+  <tr><td><code>2</code></td><td>Bad arguments.</td></tr>
+  <tr><td><code>1</code></td><td>Unknown or finished slot, or another error.</td></tr>
+  <tr><td><code>124</code></td><td><code>run</code>: <code>--max</code> killed a command that otherwise exited 0.</td></tr>
+  <tr><td><code>127</code></td><td><code>run</code>: the command could not start.</td></tr>
+  <tr><td><code>128+n</code></td><td><code>run</code>: the child died from signal n.</td></tr>
+</table>
+
+<h2 id="config">Config</h2>
+<p><code>$DEVQ_HOME/config.toml</code>, optional, re-read on every command. Globs support <code>*</code>. Unknown keys are an error.</p>
+<pre><code>[pool]
+include = ["emulator-*"]    # empty means everything adb reports
+exclude = ["emulator-5556"]
+static  = ["rig-a"]         # non-adb resources, always online</code></pre>

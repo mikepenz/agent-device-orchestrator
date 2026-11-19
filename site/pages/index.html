@@ -1,0 +1,48 @@
+<h1>device-pool-orchestrator</h1>
+<p class="lead">A fair queue for shared Android devices between AI agents. One binary, no daemon. The command is <code>devq</code>.</p>
+
+<figure>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/hero-dark.svg">
+    <img src="art/hero-light.svg" width="1200" height="420" alt="Agents ask devq for a slot. A FIFO queue in one SQLite file hands out exclusive slots to devices such as emulators and phones.">
+  </picture>
+</figure>
+
+<p>Several agents, a few emulators and phones. <code>devq</code> gives each request a ticket, serves them in order, and holds the device for exactly as long as the work runs. Every <code>devq</code> process coordinates through one SQLite file in <code>~/.devq</code>, so there is nothing to start or keep alive.</p>
+
+<h2 id="quickstart">Quickstart</h2>
+<p>Install.</p>
+<pre><code>cargo install --git https://github.com/mikepenz/agent-device-orchestrator --locked</code></pre>
+<p>Prebuilt archives for macOS, Linux and Windows are on the <a href="https://github.com/mikepenz/agent-device-orchestrator/releases">releases page</a>.</p>
+<p>Teach your agents to use it.</p>
+<pre><code>devq skills add</code></pre>
+<p>Run something on a device, then watch it.</p>
+<pre><code>devq run --agent me --purpose "read model" -- adb shell getprop ro.product.model
+devq live --open</code></pre>
+
+<h2 id="features">What you get</h2>
+<table>
+  <tr><td><b>No daemon</b></td><td>The database is the coordinator.</td></tr>
+  <tr><td><b>Fair FIFO queue</b></td><td>Requests get tickets and are served in order. A pinned request never blocks the ones behind it.</td></tr>
+  <tr><td><b><code>devq run</code></b></td><td>Wraps any command, holds the lock for its lifetime, kills the whole process group at <code>--max</code>.</td></tr>
+  <tr><td><b>Live dashboard</b></td><td>Devices, queue, timeline and run log on a local page.</td></tr>
+  <tr><td><b>Agent skill</b></td><td>Teaches Claude Code and other agent tools to take a slot first.</td></tr>
+  <tr><td><b>Optional hook</b></td><td>Blocks raw <code>adb</code> calls that have no slot. A guardrail, not a sandbox.</td></tr>
+</table>
+
+<h2 id="dashboard">Dashboard</h2>
+<figure class="shot">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/dashboard-dark.png">
+    <img src="art/dashboard-light.png" loading="lazy" width="3200" height="2600" alt="devq live: three devices with holders and progress bars, a two-entry queue, a one-hour timeline, stats and the run log">
+  </picture>
+  <figcaption>devq live in its simulator mode (?mock=1).</figcaption>
+</figure>
+
+<h2 id="next">Where next</h2>
+<ul class="cards">
+  <li><a href="commands.html"><b>Commands</b><span>Flags, exit codes, config.</span></a></li>
+  <li><a href="agents.html"><b>Agent setup</b><span>Instructions, skill and hook.</span></a></li>
+  <li><a href="dashboard.html"><b>Live dashboard</b><span>Run it as a Mac app, query the database.</span></a></li>
+  <li><a href="how-it-works.html"><b>How it works</b><span>The coordinator and the platforms.</span></a></li>
+</ul>

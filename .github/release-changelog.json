@@ -1,0 +1,15 @@
+{
+  "categories": [
+    { "title": "## 🚀 Features", "labels": ["enhancement", "feature"] },
+    { "title": "## 🐛 Fixes", "labels": ["bug", "fix"] },
+    { "title": "## ♿ Accessibility", "labels": ["accessibility"] },
+    { "title": "## 📝 Documentation", "labels": ["documentation"] },
+    { "title": "## 📦 Dependencies", "labels": ["dependencies"] },
+    { "title": "## 🧰 Other", "labels": [] }
+  ],
+  "ignore_labels": ["duplicate", "invalid", "wontfix", "skip-changelog"],
+  "sort": { "order": "ASC", "on_property": "mergedAt" },
+  "template": "#{{CHANGELOG}}",
+  "pr_template": "- #{{TITLE}} (##{{NUMBER}})",
+  "empty_template": "- No changes"
+}

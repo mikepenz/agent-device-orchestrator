@@ -2,7 +2,8 @@ name: Release
 
 # On a v* tag: verify the tag, run the full CI as a gate, build devq for every
 # target, write checksums, build release notes from merged PRs (plus commits
-# made outside PRs), and publish a GitHub release with the archives attached.
+# made outside PRs), and publish a GitHub release with the archives attached
+# and a signed build-provenance attestation for every asset.
 # Tags with a suffix (v1.2.0-rc.1) publish as prereleases.
 on:
   push:
@@ -132,6 +133,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      id-token: write # sign the attestation (Sigstore OIDC)
+      attestations: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -141,6 +144,9 @@ jobs:
       - name: Checksums
         working-directory: release-assets
         run: sha256sum -- * | tee CHECKSUMS-SHA256.txt
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release-assets/*
       - name: Release body
         env:
           # PR titles are untrusted text: pass via env and print with %s, never interpolate.
@@ -157,7 +163,7 @@ jobs:
             printf -- '- **Windows**: `x86_64-pc-windows-msvc.zip` (builds, runtime untested)\n\n'
             printf 'Or from source: `cargo install --git https://github.com/mikepenz/agent-device-orchestrator --tag %s --locked`\n\n' "$GITHUB_REF_NAME"
             printf 'The binaries are unsigned. On macOS, clear the quarantine flag after extracting: `xattr -d com.apple.quarantine devq`.\n\n'
-            printf '<details><summary>Verify downloads</summary>\n\n```sh\nsha256sum -c CHECKSUMS-SHA256.txt\n```\n\n</details>\n'
+            printf '<details><summary>Verify downloads</summary>\n\n```sh\nsha256sum -c CHECKSUMS-SHA256.txt\ngh attestation verify <archive> --repo mikepenz/agent-device-orchestrator\n```\n\n</details>\n'
           } > release-body.md
           cat release-body.md
       - uses: mikepenz/action-gh-release@7a1a2d94070db8d22681770f42cdb85a9c38d6ac # v3.1.0

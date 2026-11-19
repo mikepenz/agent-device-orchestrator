@@ -208,7 +208,18 @@ devq skills update           # refresh outdated copies (modified ones are skippe
 devq skills remove           # delete an unmodified copy (--force for edited ones)
 ```
 
-`add` and `remove` refuse to touch a hand-edited or foreign `SKILL.md` unless you pass `--force`. The source is [`.claude/skills/devq/SKILL.md`](.claude/skills/devq/SKILL.md).
+`add` and `remove` refuse to touch a hand-edited or foreign `SKILL.md` unless you pass `--force`. The source is [`skills/devq/SKILL.md`](skills/devq/SKILL.md).
+
+### Claude Code plugin
+
+The repo is also a Claude Code plugin marketplace. The plugin ships the same skill and, on session start, installs the matching `devq` release (checksum-verified, macOS and Linux) to `~/.devq/bin` if it is missing or outdated. Updates arrive through `/plugin update`.
+
+```
+/plugin marketplace add mikepenz/agent-device-orchestrator
+/plugin install devq@devq
+```
+
+The plugin version must equal the crate version (checked in CI). Other agent tools keep using `devq skills add`.
 
 ## Enforcement hook
 

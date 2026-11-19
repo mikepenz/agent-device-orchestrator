@@ -109,7 +109,7 @@ Deliverables:
 
 ## Phase 5: agent skill + real multi-agent scenario
 
-Deliverables: `.claude/skills/devq/SKILL.md` (how agents use devq), and a live run in which a Sonnet lead spawns 3 Sonnet worker agents. Each worker loads the skill and does several real adb tasks of different lengths on `emulator-5554`, coordinated only through devq. A human watches `devq live`.
+Deliverables: `skills/devq/SKILL.md` (how agents use devq), and a live run in which a Sonnet lead spawns 3 Sonnet worker agents. Each worker loads the skill and does several real adb tasks of different lengths on `emulator-5554`, coordinated only through devq. A human watches `devq live`.
 
 | # | Acceptance check | Measure |
 |---|---|---|
@@ -133,7 +133,7 @@ Status:
 
 Modelled on `android skills` (`add | list | update | remove`; `find` is skipped while there is only one skill).
 
-- The skill ships inside the binary: `include_str!("../.claude/skills/devq/SKILL.md")`. The installed version therefore always matches the CLI version.
+- The skill ships inside the binary: `include_str!("../skills/devq/SKILL.md")`. The installed version therefore always matches the CLI version.
 - On install, these keys are added to the frontmatter: `metadata: { devq-version: <crate version>, devq-sha: <sha256 of body> }`. They identify devq-owned copies and detect edits made by hand.
 - Targets:
   - global `~/.claude/skills/devq/` (default)

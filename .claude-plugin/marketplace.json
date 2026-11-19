@@ -1,0 +1,11 @@
+{
+  "name": "devq",
+  "owner": { "name": "Mike Penz" },
+  "plugins": [
+    {
+      "name": "devq",
+      "source": "./",
+      "description": "Serialise access to shared Android devices between AI agents."
+    }
+  ]
+}

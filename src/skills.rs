@@ -4,7 +4,7 @@ use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "devq";
-const BODY: &str = include_str!("../.claude/skills/devq/SKILL.md");
+const BODY: &str = include_str!("../skills/devq/SKILL.md");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const K_VER: &str = "  devq-version: ";
 // ponytail: FNV-1a 64 instead of sha256 (no new dependency). Detects hand edits only; not tamper-proof.
@@ -95,7 +95,7 @@ fn classify(path: &Path) -> State {
     }
     // dangling symlink, directory, unreadable or non-UTF-8: not ours
     let Some(text) = std::fs::read(path).ok().and_then(|b| String::from_utf8(b).ok()) else { return State::Foreign };
-    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join(".claude/skills/devq/SKILL.md");
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("skills/devq/SKILL.md");
     if matches!((path.canonicalize(), src.canonicalize()), (Ok(a), Ok(b)) if a == b) {
         return State::Source;
     }
@@ -418,13 +418,13 @@ mod tests {
     fn source_copy_is_never_touched() {
         let h = tmp("src");
         let repo = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let t = || Target { project: true, dir: None };
-        let before = std::fs::read(repo.join(".claude/skills/devq/SKILL.md")).unwrap();
+        let t = || Target { project: false, dir: Some(repo.join("skills")) };
+        let before = std::fs::read(repo.join("skills/devq/SKILL.md")).unwrap();
         let add = SkillsCmd::Add { name: None, target: t(), force: true };
         assert_eq!(run(add, Some(&h), repo).unwrap(), 1);
         let rm = SkillsCmd::Remove { name: None, target: t(), force: true };
         assert_eq!(run(rm, Some(&h), repo).unwrap(), 1);
-        assert_eq!(std::fs::read(repo.join(".claude/skills/devq/SKILL.md")).unwrap(), before);
+        assert_eq!(std::fs::read(repo.join("skills/devq/SKILL.md")).unwrap(), before);
     }
 
     #[test]

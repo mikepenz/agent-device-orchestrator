@@ -1,9 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  pull_request: # main is only reached through a PR that already ran this; no second run on merge
   schedule:
     - cron: "17 5 * * 1" # weekly full dependency-age + advisory scan
   workflow_dispatch:

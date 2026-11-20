@@ -1,9 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <title>devq live</title>
-  <rect width="512" height="512" fill="#0f0f10"/>
-  <rect x="252" y="112" width="140" height="288" rx="38" fill="none" stroke="#ededee" stroke-width="24"/>
-  <rect x="287" y="221" width="70" height="70" rx="14" fill="#3987e5"/>
-  <rect x="106" y="137" width="100" height="40" rx="10" fill="#ededee" fill-opacity=".55"/>
-  <rect x="106" y="236" width="100" height="40" rx="10" fill="#ededee"/>
-  <rect x="106" y="335" width="100" height="40" rx="10" fill="#ededee" fill-opacity=".55"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="512" height="512">
+  <title>devq</title>
+  <rect width="108" height="108" fill="#22b573"/>
+  <g transform="translate(54 54) scale(0.78) translate(-54 -54)"><path fill="#06180f" d="M40.5 43.67A17 17 0 0 1 67.5 43.67A17 17 0 1 1 67.5 64.33A17 17 0 0 1 40.5 64.33A17 17 0 1 1 40.5 43.67Z"/><circle cx="27" cy="54" r="6.5" fill="#22b573"/></g>
 </svg>

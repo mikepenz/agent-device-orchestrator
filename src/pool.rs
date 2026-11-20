@@ -264,7 +264,8 @@ R5CT1234ABC            unauthorized transport_id:2\n\
 
     #[test]
     fn visible_and_filter() {
-        let cfg = Config { pool: PoolCfg { include: vec![], exclude: vec!["x".into()], statics: vec!["rig".into()] } };
+        let cfg =
+            Config { pool: PoolCfg { include: vec![], exclude: vec!["x".into()], statics: vec!["rig".into()] }, ..Default::default() };
         assert!(visible(&cfg, "emulator-1") && visible(&cfg, "rig") && !visible(&cfg, "x"));
         let mut st = serde_json::json!({"devices":[{"serial":"x"},{"serial":"rig"}],"per_device":[{"serial":"x"}]});
         filter_state(&mut st, &cfg);

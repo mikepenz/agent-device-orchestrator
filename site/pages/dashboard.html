@@ -14,8 +14,8 @@
 
 <h2 id="mac-app">Run it as a Mac app</h2>
 <pre><code>cargo install --path .      # a stable binary path for launchd
-devq service install        # LaunchAgent: starts at login, restarts on crash (--port, default 7878)</code></pre>
-<p>Open <code>http://127.0.0.1:7878/</code> and install the page: Chrome menu, "Install devq live", or Safari, File, "Add to Dock". <code>devq service status</code> shows the launchd state, <code>restart</code> after upgrading the binary, <code>uninstall</code> removes it. Logs go to <code>~/.devq/live.log</code>. macOS only; elsewhere run <code>devq live</code> under systemd <code>--user</code>.</p>
+devq service install        # LaunchAgent: starts at login, restarts on crash (--port, default 47878)</code></pre>
+<p>Open <code>http://127.0.0.1:47878/</code> and install the page: Chrome menu, "Install devq live", or Safari, File, "Add to Dock". <code>devq service status</code> shows the launchd state, <code>restart</code> after upgrading the binary, <code>uninstall</code> removes it. Logs go to <code>~/.devq/live.log</code>. macOS only; elsewhere run <code>devq live</code> under systemd <code>--user</code>.</p>
 
 <h2 id="sql">Query the database</h2>
 <p>The database is plain SQLite. Hold time per agent:</p>

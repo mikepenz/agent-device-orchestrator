@@ -9,8 +9,8 @@ pub enum ServiceCmd {
     /// Write the LaunchAgent plist and load it
     Install {
         /// Port for `devq live`
-        #[arg(long, default_value_t = 7878)]
-        port: u16,
+        #[arg(long, env = "DEVQ_PORT")]
+        port: Option<u16>,
     },
     /// Restart the running service (use after upgrading the binary)
     Restart,
@@ -19,8 +19,8 @@ pub enum ServiceCmd {
     /// Show plist, launchd state and whether the dashboard answers
     Status {
         /// Port to probe
-        #[arg(long, default_value_t = 7878)]
-        port: u16,
+        #[arg(long, env = "DEVQ_PORT")]
+        port: Option<u16>,
     },
 }
 
@@ -110,6 +110,7 @@ mod mac {
         let target = format!("{domain}/{LABEL}");
         match cmd {
             ServiceCmd::Install { port } => {
+                let port = pool::live_port(port)?;
                 // not canonicalized: symlinked installs (Homebrew) must survive upgrades
                 let exe = std::env::current_exe()?.to_string_lossy().into_owned();
                 if exe.contains("/target/") {
@@ -169,6 +170,7 @@ mod mac {
                 }
             }
             ServiceCmd::Status { port } => {
+                let port = pool::live_port(port)?;
                 println!("plist:  {} ({})", path.display(), if path.exists() { "present" } else { "missing" });
                 match loaded() {
                     Some(out) => {

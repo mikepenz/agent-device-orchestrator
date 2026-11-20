@@ -1,6 +1,6 @@
 {
   "name": "devq",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Serialise access to shared Android devices between AI agents. Ships the devq skill and installs the devq CLI.",
   "homepage": "https://mikepenz.github.io/agent-device-orchestrator/",
   "repository": "https://github.com/mikepenz/agent-device-orchestrator",

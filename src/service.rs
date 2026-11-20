@@ -9,7 +9,7 @@ pub enum ServiceCmd {
     /// Write the LaunchAgent plist and load it
     Install {
         /// Port for `devq live`
-        #[arg(long, default_value_t = 7878)]
+        #[arg(long, env = "DEVQ_PORT", default_value_t = 47878)]
         port: u16,
     },
     /// Restart the running service (use after upgrading the binary)
@@ -19,7 +19,7 @@ pub enum ServiceCmd {
     /// Show plist, launchd state and whether the dashboard answers
     Status {
         /// Port to probe
-        #[arg(long, default_value_t = 7878)]
+        #[arg(long, env = "DEVQ_PORT", default_value_t = 47878)]
         port: u16,
     },
 }

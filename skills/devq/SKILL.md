@@ -72,7 +72,7 @@ Only if one call cannot work. With a 120s tool timeout use `--wait 60s` for a si
 
 - `devq status` shows devices, holders and the queue. `--json` for scripts.
 - `devq devices` lists the pool (serial, kind, state, model).
-- `devq live --open` starts the dashboard for humans on 127.0.0.1:7878. Agents do not need it.
+- `devq live --open` starts the dashboard for humans on 127.0.0.1:47878. Agents do not need it.
 
 ## Troubleshooting
 

@@ -124,7 +124,7 @@ enum Cmd {
     /// Serve the live dashboard on 127.0.0.1
     Live {
         /// Port to listen on
-        #[arg(long, default_value_t = 7878)]
+        #[arg(long, env = "DEVQ_PORT", default_value_t = 47878)]
         port: u16,
         /// Open the dashboard in the default browser
         #[arg(long)]

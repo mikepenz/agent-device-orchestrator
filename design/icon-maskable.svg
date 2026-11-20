@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="512" height="512">
   <title>devq</title>
   <rect width="108" height="108" fill="#22b573"/>
-  <g transform="translate(54 54) scale(0.78) translate(-54 -54)"><path fill="#06180f" d="M40.5 43.67A17 17 0 0 1 67.5 43.67A17 17 0 1 1 67.5 64.33A17 17 0 0 1 40.5 64.33A17 17 0 1 1 40.5 43.67Z"/><circle cx="27" cy="54" r="6.5" fill="#22b573"/></g>
+  <g transform="translate(54 54) scale(12.5)"><path fill="#06180f" d="M-1.093 0.795 A1 1 0 1 1 -1.093 -0.795 A0.4 0.4 0 0 0 -0.607 -0.795 A1 1 0 0 1 0.607 -0.795 A0.4 0.4 0 0 0 1.093 -0.795 A1 1 0 1 1 1.093 0.795 A0.4 0.4 0 0 0 0.607 0.795 A1 1 0 0 1 -0.607 0.795 A0.4 0.4 0 0 0 -1.093 0.795 Z"/><circle cx="-1.7" r="0.42" fill="#22b573"/></g>
 </svg>

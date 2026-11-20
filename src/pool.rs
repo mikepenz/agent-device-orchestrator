@@ -10,6 +10,20 @@ const SYNC_THROTTLE_MS: i64 = 3_000;
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub pool: PoolCfg,
+    pub live: LiveCfg,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct LiveCfg {
+    pub port: Option<u16>,
+}
+
+pub const DEFAULT_PORT: u16 = 47878;
+
+/// Flag or `DEVQ_PORT` (already merged by clap), then `[live] port` in config.toml, then the default.
+pub fn live_port(flag: Option<u16>) -> Res<u16> {
+    Ok(flag.or(load_config(&devq_home())?.live.port).unwrap_or(DEFAULT_PORT))
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -256,6 +270,14 @@ R5CT1234ABC            unauthorized transport_id:2\n\
         filter_state(&mut st, &cfg);
         assert_eq!(st["devices"].as_array().unwrap().len(), 1);
         assert_eq!(st["per_device"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn live_port_precedence() {
+        assert_eq!(live_port(Some(1)).unwrap(), 1);
+        let c: Config = toml::from_str("[live]\nport=9\n").unwrap();
+        assert_eq!(c.live.port, Some(9));
+        assert_eq!(Config::default().live.port, None);
     }
 
     #[test]

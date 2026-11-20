@@ -133,7 +133,7 @@ Durations: `90s`, `10m`, `1h30m`, `2d` (units ms, s, m, h, d, w).
 | `devq run -- <CMD>...` | slot flags | Acquire, run the command, release. Exits with the command's exit code. |
 | `devq status` | `--json` | Devices, holders and queue. |
 | `devq devices` | `--json` | Pool contents (serial, kind, state, model). |
-| `devq live` | `--port <PORT>` or `DEVQ_PORT` (default `47878`), `--open` | Web dashboard. |
+| `devq live` | `--port <PORT>` , `DEVQ_PORT` or `[live] port` in config (default `47878`), `--open` | Web dashboard. |
 | `devq service` | `install [--port]`, `restart`, `uninstall`, `status` | Run `devq live` as a macOS launchd service. |
 | `devq skills` | `list`, `add`, `update`, `remove` | Install and manage the bundled agent skill. |
 | `devq hook` | `install`, `uninstall`, `test <COMMAND>`, `--strict` | Optional guardrail against raw adb. |
@@ -158,6 +158,9 @@ Durations: `90s`, `10m`, `1h30m`, `2d` (units ms, s, m, h, d, w).
 include = ["emulator-*"]    # empty means everything adb reports
 exclude = ["emulator-5556"]
 static  = ["rig-a"]         # non-adb resources, always online
+
+[live]
+port = 47878               # dashboard port; `--port` and `DEVQ_PORT` override it
 ```
 
 Unknown keys or a malformed file are an error. The file is re-read on every command.

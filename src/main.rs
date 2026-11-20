@@ -124,8 +124,8 @@ enum Cmd {
     /// Serve the live dashboard on 127.0.0.1
     Live {
         /// Port to listen on
-        #[arg(long, env = "DEVQ_PORT", default_value_t = 47878)]
-        port: u16,
+        #[arg(long, env = "DEVQ_PORT")]
+        port: Option<u16>,
         /// Open the dashboard in the default browser
         #[arg(long)]
         open: bool,
@@ -418,7 +418,7 @@ fn go(cli: Cli) -> Res<i32> {
         Cmd::Run { slot, cmd } => run(slot, cmd, &Sigs::new()),
         Cmd::Status { json } => status(json).map(|_| 0),
         Cmd::Devices { json } => devices(json).map(|_| 0),
-        Cmd::Live { port, open } => live::serve(port, open).map(|_| 0),
+        Cmd::Live { port, open } => live::serve(pool::live_port(port)?, open).map(|_| 0),
         Cmd::Service { cmd } => service::run(cmd),
         Cmd::Hook { strict, cmd } => hook::run(strict, cmd, sys::home_dir().ok().as_deref(), &std::env::current_dir()?),
         Cmd::Skills { cmd } => {
